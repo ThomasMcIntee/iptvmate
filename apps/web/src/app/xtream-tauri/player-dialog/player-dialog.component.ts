@@ -14,6 +14,7 @@ export interface PlayerDialogData {
     title: string;
     contentInfo?: any;
     startTime?: number;
+    subtitleUrl?: string;
 }
 
 @Component({

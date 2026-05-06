@@ -1,6 +1,8 @@
 import 'jest-extended';
 import { Playlist } from './libs/shared/interfaces/src/lib/playlist.interface';
 
+declare module 'videojs-quality-selector-hls';
+
 declare module 'video.js' {
     export interface VideoJsPlayer {
         hlsQualitySelector(options?: Record<string, unknown>): void;
@@ -31,6 +33,15 @@ declare global {
                 content: string
             ) => Promise<{ success: boolean }>;
             setUserAgent: (userAgent: string, referer?: string) => void;
+            openSubtitlesRequest: (payload: {
+                apiKey: string;
+                language: string;
+                tmdbId?: string | null;
+                season?: number;
+                episode?: number;
+                title?: string;
+                timeoutMs?: number;
+            }) => Promise<string | null>;
             openInMpv: (
                 url: string,
                 title: string,
@@ -91,6 +102,7 @@ declare global {
             }) => Promise<{ payload: any; action: string }>;
             // Database operations
             dbCreatePlaylist: (playlist: any) => Promise<{ success: boolean }>;
+            dbGetAllPlaylists: () => Promise<any[]>;
             dbGetPlaylist: (playlistId: string) => Promise<any>;
             dbUpdatePlaylist: (
                 playlistId: string,

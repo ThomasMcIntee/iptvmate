@@ -87,6 +87,7 @@ declare global {
             }) => Promise<{ payload: any; action: string }>;
             // Database operations
             dbCreatePlaylist: (playlist: any) => Promise<{ success: boolean }>;
+            dbGetAllPlaylists: () => Promise<any[]>;
             dbGetPlaylist: (playlistId: string) => Promise<any>;
             dbUpdatePlaylist: (
                 playlistId: string,

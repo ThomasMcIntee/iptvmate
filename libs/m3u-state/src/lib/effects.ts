@@ -222,22 +222,28 @@ export class PlaylistEffects {
             return this.actions$.pipe(
                 ofType(PlaylistActions.removePlaylist),
                 switchMap(async (action) => {
-                    // Delete from IndexedDB
-                    await firstValueFrom(
-                        this.playlistsService.deletePlaylist(action.playlistId)
-                    );
-                    // Also delete from SQLite if running in Electron
-                    if ((window as any).electron?.dbDeletePlaylist) {
-                        try {
+                    try {
+                        if ((window as any).electron?.dbDeletePlaylist) {
                             await (window as any).electron.dbDeletePlaylist(
                                 action.playlistId
                             );
-                        } catch (error) {
-                            console.error(
-                                'Error deleting playlist from SQLite:',
-                                error
-                            );
                         }
+
+                        await firstValueFrom(
+                            this.playlistsService.deletePlaylist(action.playlistId)
+                        );
+
+                        this.snackBar.open(
+                            this.translate.instant(
+                                'HOME.PLAYLISTS.REMOVE_DIALOG.SUCCESS'
+                            ),
+                            undefined,
+                            {
+                                duration: 2000,
+                            }
+                        );
+                    } catch (error) {
+                        console.error('Error deleting playlist:', error);
                     }
                 })
             );
@@ -389,19 +395,12 @@ export class PlaylistEffects {
             return this.actions$.pipe(
                 ofType(PlaylistActions.removeAllPlaylists),
                 switchMap(async () => {
-                    // Delete from IndexedDB
-                    await firstValueFrom(this.playlistsService.removeAll());
-                    // Also delete from SQLite if running in Electron
                     if ((window as any).electron?.dbDeleteAllPlaylists) {
-                        try {
-                            await (window as any).electron.dbDeleteAllPlaylists();
-                        } catch (error) {
-                            console.error(
-                                'Error deleting playlists from SQLite:',
-                                error
-                            );
-                        }
+                        await (window as any).electron.dbDeleteAllPlaylists();
                     }
+
+                    await firstValueFrom(this.playlistsService.removeAll());
+
                     this.snackBar.open(
                         this.translate.instant('SETTINGS.PLAYLISTS_REMOVED'),
                         undefined,

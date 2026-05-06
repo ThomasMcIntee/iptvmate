@@ -167,11 +167,11 @@ export class SearchResultsComponent implements AfterViewInit {
         if (this.isGlobalSearch) {
             this.searchGlobal(this.searchTerm(), types, excludeHidden);
         } else {
-            this.xtreamStore.searchContent({
-                term: this.searchTerm(),
+            void this.xtreamStore.searchContent(
+                this.searchTerm(),
                 types,
-                excludeHidden,
-            });
+                excludeHidden
+            );
         }
     }
 

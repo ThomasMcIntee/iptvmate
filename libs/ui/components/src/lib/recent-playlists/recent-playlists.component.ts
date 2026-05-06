@@ -89,30 +89,33 @@ export class RecentPlaylistsComponent {
         this.sortService.getSortOptions(),
     ]).pipe(
         map(([playlists, searchQuery, filters, sortOptions]) => {
-            const filteredPlaylists = playlists
-                .filter((item) => {
-                    const isStalkerFilter =
-                        item.macAddress && filters.includes('stalker');
-                    const isXtreamFilter =
-                        item.username &&
-                        item.password &&
-                        item.serverUrl &&
-                        filters.includes('xtream');
-                    const isM3uFilter =
-                        !item.username &&
-                        !item.password &&
-                        !item.serverUrl &&
-                        !item.macAddress &&
-                        filters.includes('m3u');
+            const normalizedQuery = searchQuery.trim().toLowerCase();
 
-                    return (
-                        (isStalkerFilter && filters.includes('stalker')) ||
-                        (isXtreamFilter && filters.includes('xtream')) ||
-                        (isM3uFilter && filters.includes('m3u'))
-                    );
-                })
+            const typeFilteredPlaylists = playlists.filter((item) => {
+                const isStalkerFilter =
+                    item.macAddress && filters.includes('stalker');
+                const isXtreamFilter =
+                    item.username &&
+                    item.password &&
+                    item.serverUrl &&
+                    filters.includes('xtream');
+                const isM3uFilter =
+                    !item.username &&
+                    !item.password &&
+                    !item.serverUrl &&
+                    !item.macAddress &&
+                    filters.includes('m3u');
+
+                return (
+                    (isStalkerFilter && filters.includes('stalker')) ||
+                    (isXtreamFilter && filters.includes('xtream')) ||
+                    (isM3uFilter && filters.includes('m3u'))
+                );
+            });
+
+            const filteredPlaylists = (normalizedQuery ? playlists : typeFilteredPlaylists)
                 .filter((item) =>
-                    item.title.toLowerCase().includes(searchQuery.toLowerCase())
+                    item.title.toLowerCase().includes(normalizedQuery)
                 );
 
             // Apply sorting using the SortService
@@ -190,17 +193,7 @@ export class RecentPlaylistsComponent {
      * @param playlistId playlist id to remove
      */
     async removePlaylist(playlistId: string) {
-        const deleted = await this.databaseService.deletePlaylist(playlistId);
-        if (deleted) {
-            this.store.dispatch(PlaylistActions.removePlaylist({ playlistId }));
-            this.snackBar.open(
-                this.translate.instant('HOME.PLAYLISTS.REMOVE_DIALOG.SUCCESS'),
-                undefined,
-                {
-                    duration: 2000,
-                }
-            );
-        }
+        this.store.dispatch(PlaylistActions.removePlaylist({ playlistId }));
     }
 
     /**

@@ -5,12 +5,18 @@ import { PlaybackPositionData } from 'shared-interfaces';
     providedIn: 'root',
 })
 export class PlaybackPositionService {
+    private get electronApi() {
+        return (globalThis as {
+            electron?: any;
+        }).electron as any;
+    }
+
     async savePlaybackPosition(
         playlistId: string,
         data: PlaybackPositionData
     ): Promise<void> {
         try {
-            await window.electron.dbSavePlaybackPosition(playlistId, data);
+            await this.electronApi.dbSavePlaybackPosition(playlistId, data);
         } catch (error) {
             console.error('Error saving playback position:', error);
         }
@@ -22,7 +28,7 @@ export class PlaybackPositionService {
         contentType: 'vod' | 'episode'
     ): Promise<PlaybackPositionData | null> {
         try {
-            return await window.electron.dbGetPlaybackPosition(
+            return await this.electronApi.dbGetPlaybackPosition(
                 playlistId,
                 contentXtreamId,
                 contentType
@@ -38,7 +44,7 @@ export class PlaybackPositionService {
         seriesXtreamId: number
     ): Promise<PlaybackPositionData[]> {
         try {
-            return await window.electron.dbGetSeriesPlaybackPositions(
+            return await this.electronApi.dbGetSeriesPlaybackPositions(
                 playlistId,
                 seriesXtreamId
             );
@@ -53,7 +59,7 @@ export class PlaybackPositionService {
         limit?: number
     ): Promise<PlaybackPositionData[]> {
         try {
-            return await window.electron.dbGetRecentPlaybackPositions(
+            return await this.electronApi.dbGetRecentPlaybackPositions(
                 playlistId,
                 limit
             );
@@ -65,7 +71,7 @@ export class PlaybackPositionService {
 
     async getAllPlaybackPositions(playlistId: string): Promise<PlaybackPositionData[]> {
         try {
-            return await window.electron.dbGetAllPlaybackPositions(playlistId);
+            return await this.electronApi.dbGetAllPlaybackPositions(playlistId);
         } catch (error) {
             console.error('Error getting all playback positions:', error);
             return [];
@@ -78,7 +84,7 @@ export class PlaybackPositionService {
         contentType: 'vod' | 'episode'
     ): Promise<void> {
         try {
-            await window.electron.dbClearPlaybackPosition(
+            await this.electronApi.dbClearPlaybackPosition(
                 playlistId,
                 contentXtreamId,
                 contentType

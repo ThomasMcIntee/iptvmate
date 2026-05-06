@@ -31,7 +31,8 @@ export class PlayerService {
         referer?: string,
         origin?: string,
         contentInfo?: any,
-        startTime?: number
+        startTime?: number,
+        subtitleUrl?: string | null
     ) {
         const player = this.settingsStore.player() ?? VideoPlayer.VideoJs;
 
@@ -67,7 +68,7 @@ export class PlayerService {
             this.dialog.open<PlayerDialogComponent, PlayerDialogData>(
                 PlayerDialogComponent,
                 {
-                    data: { streamUrl, title, contentInfo, startTime },
+                    data: { streamUrl, title, contentInfo, startTime, subtitleUrl: subtitleUrl ?? undefined },
                     width: '80%',
                     maxWidth: '1200px',
                     maxHeight: '90vh',

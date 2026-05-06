@@ -30,6 +30,8 @@ const DEFAULT_SETTINGS: Settings = {
     remoteControlPort: 8765,
     epgUrl: [],
     downloadFolder: '',
+    opensubtitlesApiKey: '',
+    subtitleLanguage: 'en',
 };
 
 export const SettingsStore = signalStore(
@@ -81,6 +83,8 @@ export const SettingsStore = signalStore(
                 remoteControlPort: store.remoteControlPort(),
                 epgUrl: store.epgUrl(),
                 downloadFolder: store.downloadFolder(),
+                opensubtitlesApiKey: store.opensubtitlesApiKey(),
+                subtitleLanguage: store.subtitleLanguage(),
             };
         },
 

@@ -1,7 +1,7 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { StorageMap } from '@ngx-pwa/local-storage';
-import { catchError, map, Observable } from 'rxjs';
+import { catchError, map, Observable, of } from 'rxjs';
 import * as semver from 'semver';
 import { STORE_KEY, Theme } from 'shared-interfaces';
 
@@ -55,10 +55,10 @@ export class SettingsService {
      * Returns the version of the released app
      * Filters out pre-release versions (beta, alpha, rc)
      */
-    getAppVersion() {
+    getAppVersion(): Observable<string | null> {
         return this.http
             .get<{ created_at: string; name: string }[]>(
-                'https://api.github.com/repos/4gray/iptvmate/releases'
+                'https://api.github.com/repos/thomasmcintee/iptvmate/releases'
             )
             .pipe(
                 map((response) => {
@@ -101,12 +101,15 @@ export class SettingsService {
                             new Date(a.created_at).getTime()
                     );
 
-                    return sortedReleases[0];
+                    return sortedReleases[0] ?? null;
                 }),
-                map((response) => response.name),
-                catchError((err) => {
-                    console.error(err);
-                    throw new Error(err);
+                map((response) => response?.name ?? null),
+                catchError((err: HttpErrorResponse) => {
+                    // Missing/renamed GitHub release endpoint should not surface as a runtime error.
+                    if (err.status !== 404) {
+                        console.warn('Unable to fetch latest release information.');
+                    }
+                    return of(null);
                 })
             );
     }

@@ -3,6 +3,7 @@
     <app-web-player-view
         [streamUrl]="streamUrl"
         [startTime]="data.startTime || 0"
+        [subtitleUrl]="data.subtitleUrl || null"
         (timeUpdate)="handleTimeUpdate($event)"
     />
 </mat-dialog-content>

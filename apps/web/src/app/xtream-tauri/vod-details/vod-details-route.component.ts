@@ -15,6 +15,7 @@ import { TranslateModule } from '@ngx-translate/core';
 import { ContentHeroComponent } from 'components';
 import { XtreamVodDetails } from 'shared-interfaces';
 import { DownloadsService } from '../../services/downloads.service';
+import { OpenSubtitlesService } from '../../services/opensubtitles.service';
 import { SettingsStore } from '../../services/settings-store.service';
 import { XtreamStore } from '../stores/xtream.store';
 import { SafePipe } from '@iptvmate/pipes';
@@ -48,6 +49,7 @@ export class VodDetailsRouteComponent implements OnInit, OnDestroy {
     private route = inject(ActivatedRoute);
     private readonly xtreamStore = inject(XtreamStore);
     private readonly downloadsService = inject(DownloadsService);
+    private readonly openSubtitles = inject(OpenSubtitlesService);
     private readonly logger = createLogger('VodDetailsRoute');
     private readonly detailsInitDone = signal(false);
 
@@ -114,7 +116,7 @@ export class VodDetailsRouteComponent implements OnInit, OnDestroy {
         this.xtreamStore.setSelectedItem(null);
     }
 
-    playVod(vodItem: XtreamVodDetails) {
+    async playVod(vodItem: XtreamVodDetails) {
         this.addToRecentlyViewed();
         const streamUrl = this.xtreamStore.constructVodStreamUrl(vodItem);
 
@@ -134,16 +136,27 @@ export class VodDetailsRouteComponent implements OnInit, OnDestroy {
             contentType: 'vod',
         };
 
+        const subtitleUrl = vodItem.info?.tmdb_id
+            ? await this.openSubtitles.fetchSubtitleUrl(
+                  vodItem.info.tmdb_id,
+                  undefined,
+                  undefined,
+                  undefined,
+                  vodItem.info.name ?? vodItem?.movie_data?.name
+              )
+            : null;
+
         this.xtreamStore.openPlayer(
             streamUrl,
             vodItem.info.name ?? vodItem?.movie_data?.name,
             vodItem.info.movie_image,
             undefined,
-            contentInfo
+            contentInfo,
+            subtitleUrl
         );
     }
 
-    resumeVod(vodItem: XtreamVodDetails) {
+    async resumeVod(vodItem: XtreamVodDetails) {
         this.addToRecentlyViewed();
         const vodId = Number(this.route.snapshot.params.vodId);
         const position = this.xtreamStore
@@ -158,12 +171,23 @@ export class VodDetailsRouteComponent implements OnInit, OnDestroy {
             contentType: 'vod',
         };
 
+        const subtitleUrl = vodItem.info?.tmdb_id
+            ? await this.openSubtitles.fetchSubtitleUrl(
+                  vodItem.info.tmdb_id,
+                  undefined,
+                  undefined,
+                  undefined,
+                  vodItem.info.name ?? vodItem?.movie_data?.name
+              )
+            : null;
+
         this.xtreamStore.openPlayer(
             streamUrl,
             vodItem.info.name ?? vodItem?.movie_data?.name,
             vodItem.info.movie_image,
             position?.positionSeconds,
-            contentInfo
+            contentInfo,
+            subtitleUrl
         );
     }
 

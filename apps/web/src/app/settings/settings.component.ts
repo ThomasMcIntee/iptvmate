@@ -155,6 +155,8 @@ export class SettingsComponent implements OnInit {
                 Validators.pattern(/^\d+$/),
             ],
         ],
+        opensubtitlesApiKey: '',
+        subtitleLanguage: 'en',
     });
 
     /** Form array with epg sources */
@@ -247,7 +249,12 @@ export class SettingsComponent implements OnInit {
         this.settingsService
             .getAppVersion()
             .pipe(take(1))
-            .subscribe((version) => this.showVersionInformation(version));
+            .subscribe((version) => {
+                if (!version) {
+                    return;
+                }
+                this.showVersionInformation(version);
+            });
     }
 
     /**
@@ -481,6 +488,47 @@ export class SettingsComponent implements OnInit {
             message: this.translate.instant('SETTINGS.REMOVE_DIALOG.MESSAGE'),
             onConfirm: (): void =>
                 this.store.dispatch(PlaylistActions.removeAllPlaylists()),
+        });
+    }
+
+    resyncPlaylistDatabases(): void {
+        if (!this.isDesktop) {
+            return;
+        }
+
+        this.dialogService.openConfirmDialog({
+            title: 'Resync playlist databases',
+            message:
+                'This removes stale Electron playlist records that no longer exist in the app playlist list, then reloads playlists. Continue?',
+            onConfirm: async (): Promise<void> => {
+                try {
+                    const { removedPlaylistIds } =
+                        await this.playlistsService.cleanupStaleElectronPlaylists();
+
+                    this.store.dispatch(PlaylistActions.loadPlaylists());
+
+                    this.snackBar.open(
+                        removedPlaylistIds.length > 0
+                            ? `Removed ${removedPlaylistIds.length} stale playlist record${removedPlaylistIds.length === 1 ? '' : 's'} and reloaded playlists.`
+                            : 'Playlist databases were already in sync.',
+                        null,
+                        {
+                            duration: 3000,
+                            horizontalPosition: 'start',
+                        }
+                    );
+                } catch (error) {
+                    console.error('Error resyncing playlist databases:', error);
+                    this.snackBar.open(
+                        'Failed to resync playlist databases.',
+                        null,
+                        {
+                            duration: 3000,
+                            horizontalPosition: 'start',
+                        }
+                    );
+                }
+            },
         });
     }
 }

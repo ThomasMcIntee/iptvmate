@@ -6,7 +6,7 @@ import { MatListModule } from '@angular/material/list';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MomentDatePipe } from '@iptvmate/pipes';
 import { TranslateModule } from '@ngx-translate/core';
-import moment from 'moment';
+import * as moment from 'moment';
 import { MockModule, MockPipe } from 'ng-mocks';
 import { EpgProgram } from 'shared-interfaces';
 import { EpgItemDescriptionComponent } from '../epg-item-description/epg-item-description.component';
@@ -78,7 +78,7 @@ describe('EpgListItemComponent', () => {
         fixture = TestBed.createComponent(EpgListItemComponent);
         dialog = TestBed.inject(MatDialog);
         component = fixture.componentInstance;
-        component.item = EPG_PROGRAM_ITEM;
+        component.item = EPG_PROGRAM_ITEM as unknown as EpgProgram;
         fixture.detectChanges();
     });
 

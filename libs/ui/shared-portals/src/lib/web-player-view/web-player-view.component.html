@@ -1,27 +1,34 @@
 @if (player === 'videojs') {
     <app-vjs-player
         [options]="vjsOptions"
+        [showCaptions]="showCaptions"
         [startTime]="startTime()"
+        [subtitleUrl]="subtitleUrl()"
         (timeUpdate)="timeUpdate.emit($event)"
     />
 } @else if (player === 'html5') {
     <app-html-video-player
         [channel]="$any(channel)"
+        [showCaptions]="showCaptions"
         [startTime]="startTime()"
+        [subtitleUrl]="subtitleUrl()"
         (timeUpdate)="timeUpdate.emit($event)"
     />
 } @else if (player === 'artplayer') {
     <app-art-player
         [channel]="$any(channel)"
         [volume]="1"
-        [showCaptions]="false"
+        [showCaptions]="showCaptions"
         [startTime]="startTime()"
+        [subtitleUrl]="subtitleUrl()"
         (timeUpdate)="timeUpdate.emit($event)"
     />
 } @else {
     <app-vjs-player
         [options]="vjsOptions"
+        [showCaptions]="showCaptions"
         [startTime]="startTime()"
+        [subtitleUrl]="subtitleUrl()"
         (timeUpdate)="timeUpdate.emit($event)"
     />
 }

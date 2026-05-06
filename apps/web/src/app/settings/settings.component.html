@@ -278,6 +278,39 @@
                 ></mat-checkbox>
             </div>
         </div>
+        <mat-divider />
+        <div class="row">
+            <div class="column">
+                {{ 'SETTINGS.OPENSUBTITLES_API_KEY' | translate }}
+                <p>{{ 'SETTINGS.OPENSUBTITLES_API_KEY_DESCRIPTION' | translate }}</p>
+            </div>
+            <div class="column margin-right">
+                <mat-form-field>
+                    <input
+                        matInput
+                        type="password"
+                        formControlName="opensubtitlesApiKey"
+                        [placeholder]="'SETTINGS.OPENSUBTITLES_API_KEY_PLACEHOLDER' | translate"
+                    />
+                </mat-form-field>
+            </div>
+        </div>
+        <mat-divider />
+        <div class="row">
+            <div class="column">
+                {{ 'SETTINGS.SUBTITLE_LANGUAGE' | translate }}
+                <p>{{ 'SETTINGS.SUBTITLE_LANGUAGE_DESCRIPTION' | translate }}</p>
+            </div>
+            <div class="column margin-right">
+                <mat-form-field>
+                    <input
+                        matInput
+                        formControlName="subtitleLanguage"
+                        [placeholder]="'en'"
+                    />
+                </mat-form-field>
+            </div>
+        </div>
         @if (isDesktop) {
             <mat-divider />
             <div class="row">
@@ -400,6 +433,7 @@
             <div class="column">
                 <button
                     mat-button
+                    type="button"
                     (click)="
                         $event.preventDefault();
                         $event.stopPropagation();
@@ -410,6 +444,7 @@
                 </button>
                 <button
                     mat-button
+                    type="button"
                     (click)="
                         $event.preventDefault();
                         $event.stopPropagation();
@@ -431,6 +466,7 @@
             <div class="column">
                 <button
                     mat-button
+                    type="button"
                     (click)="
                         $event.preventDefault();
                         $event.stopPropagation();
@@ -443,10 +479,35 @@
             </div>
         </div>
 
+        @if (isDesktop) {
+            <div class="row">
+                <div class="column">
+                    Playlist database maintenance
+                    <p>
+                        Remove stale Electron playlist records that no longer
+                        exist in the main app list, then reload playlists.
+                    </p>
+                </div>
+                <div class="column">
+                    <button
+                        mat-button
+                        type="button"
+                        (click)="
+                            $event.preventDefault();
+                            $event.stopPropagation();
+                            resyncPlaylistDatabases()
+                        "
+                    >
+                        Resync databases
+                    </button>
+                </div>
+            </div>
+        }
+
         @if (isPwa) {
             <div class="row">
                 {{ 'SETTINGS.EPG_NOTE' | translate }}
-                &nbsp;<a href="https://github.com/4gray/iptvmate/releases">{{
+                &nbsp;<a href="https://github.com/thomasmcintee/iptvmate/releases">{{
                     'SETTINGS.EPG_NOTE_URL_TEXT' | translate
                 }}</a>
             </div>

@@ -166,7 +166,14 @@ export default class App {
     private static loadMainWindow() {
         // load the index.html of the app.
         if (App.isDevelopmentMode()) {
-            App.mainWindow.loadURL(`http://localhost:${rendererAppPort}`);
+            const url = `http://localhost:${rendererAppPort}`;
+            const tryLoad = () => {
+                App.mainWindow.loadURL(url).catch(() => {
+                    // Angular dev server not ready yet – retry after 1s
+                    setTimeout(tryLoad, 1000);
+                });
+            };
+            tryLoad();
             App.mainWindow.webContents.openDevTools();
         } else {
             App.mainWindow.loadFile(

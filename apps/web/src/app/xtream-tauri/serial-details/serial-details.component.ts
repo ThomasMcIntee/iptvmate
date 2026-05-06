@@ -5,6 +5,7 @@ import { ActivatedRoute } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
 import { ContentHeroComponent } from 'components';
 import { XtreamSerieEpisode } from 'shared-interfaces';
+import { OpenSubtitlesService } from '../../services/opensubtitles.service';
 import { SeasonContainerComponent } from '../season-container/season-container.component';
 import { XtreamStore } from '../stores/xtream.store';
 
@@ -24,6 +25,7 @@ export class SerialDetailsComponent implements OnInit, OnDestroy {
     private readonly location = inject(Location);
     private readonly route = inject(ActivatedRoute);
     private readonly xtreamStore = inject(XtreamStore);
+    private readonly openSubtitles = inject(OpenSubtitlesService);
 
     readonly selectedItem = this.xtreamStore.selectedItem;
     readonly selectedContentType = this.xtreamStore.selectedContentType;
@@ -51,7 +53,7 @@ export class SerialDetailsComponent implements OnInit, OnDestroy {
         this.xtreamStore.setSelectedItem(null);
     }
 
-    playEpisode(episode: XtreamSerieEpisode) {
+    async playEpisode(episode: XtreamSerieEpisode) {
         this.addToRecentlyViewed(this.route.snapshot.params.serialId);
 
         const streamUrl = this.xtreamStore.constructEpisodeStreamUrl(episode);
@@ -68,12 +70,26 @@ export class SerialDetailsComponent implements OnInit, OnDestroy {
             .playbackPositions()
             .get(`episode_${episode.id}`);
 
+        const episodeInfo = Array.isArray(episode.info) ? null : episode.info;
+        const selectedSeriesInfo = (this.selectedItem() as any)?.info as
+            | { tmdb_id?: number | string }
+            | undefined;
+        const tmdbId = episodeInfo?.tmdb_id ?? selectedSeriesInfo?.tmdb_id;
+        const subtitleUrl = await this.openSubtitles.fetchSubtitleUrl(
+            tmdbId,
+            undefined,
+            Number(episode.season),
+            Number(episode.episode_num),
+            episode.title
+        );
+
         this.xtreamStore.openPlayer(
             streamUrl,
             episode.title,
             this.selectedItem().info.cover,
             position?.positionSeconds,
-            contentInfo
+            contentInfo,
+            subtitleUrl
         );
     }
 

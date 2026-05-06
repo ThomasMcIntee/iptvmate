@@ -13,6 +13,7 @@ import {
 import Artplayer from 'artplayer';
 import Hls from 'hls.js';
 import { Channel } from 'shared-interfaces';
+import { getExtensionFromUrl } from 'm3u-utils';
 
 Artplayer.AUTO_PLAYBACK_TIMEOUT = 10000;
 
@@ -39,6 +40,7 @@ export class ArtPlayerComponent implements OnInit, OnDestroy, OnChanges {
     @Input() volume = 1;
     @Input() showCaptions = false;
     @Input() startTime = 0;
+    @Input() subtitleUrl: string | null = null;
     @Output() timeUpdate = new EventEmitter<{
         currentTime: number;
         duration: number;
@@ -78,7 +80,13 @@ export class ArtPlayerComponent implements OnInit, OnDestroy, OnChanges {
         const el = this.elementRef.nativeElement.querySelector(
             '.artplayer-container'
         );
-        const isLive = this.channel?.url?.toLowerCase().includes('m3u8');
+        const effectiveUrl = this.getEffectiveSourceUrl(this.channel.url);
+        const lowerUrl = effectiveUrl.toLowerCase();
+        const extension = getExtensionFromUrl(effectiveUrl)?.toLowerCase();
+        const isLive =
+            extension === 'm3u8' ||
+            extension === 'ts' ||
+            lowerUrl.includes('/live/');
 
         this.player = new Artplayer({
             container: el,
@@ -102,6 +110,17 @@ export class ArtPlayerComponent implements OnInit, OnDestroy, OnChanges {
             backdrop: true,
             mutex: true,
             theme: '#ff0000',
+            ...(this.subtitleUrl
+                ? {
+                      subtitle: {
+                          url: this.subtitleUrl,
+                          type: 'vtt',
+                          encoding: 'utf-8',
+                          escape: false,
+                          style: {},
+                      },
+                  }
+                : {}),
             customType: {
                 m3u8: (video: HTMLVideoElement, url: string) => {
                     if (Hls.isSupported()) {
@@ -129,11 +148,24 @@ export class ArtPlayerComponent implements OnInit, OnDestroy, OnChanges {
             },
         });
 
-        if (this.startTime > 0) {
-            this.player.on('ready', () => {
+        this.player.on('ready', () => {
+            if (this.startTime > 0) {
                 this.player.seek = this.startTime;
-            });
-        }
+            }
+            const video = this.player.video as HTMLVideoElement | undefined;
+            if (video) {
+                const applyTracks = () => {
+                    for (let i = 0; i < video.textTracks.length; i++) {
+                        const t = video.textTracks[i];
+                        if (t.kind === 'subtitles' || t.kind === 'captions') {
+                            t.mode = this.showCaptions ? 'showing' : 'hidden';
+                        }
+                    }
+                };
+                video.textTracks.addEventListener('addtrack', applyTracks);
+                applyTracks();
+            }
+        });
 
         this.player.on('video:timeupdate', () => {
             this.timeUpdate.emit({
@@ -143,12 +175,30 @@ export class ArtPlayerComponent implements OnInit, OnDestroy, OnChanges {
         });
     }
 
+    private getEffectiveSourceUrl(url: string): string {
+        try {
+            const parsed = new URL(url);
+            const nestedUrl = parsed.searchParams.get('url');
+            if (nestedUrl) {
+                return decodeURIComponent(nestedUrl);
+            }
+        } catch {
+            return url;
+        }
+
+        return url;
+    }
+
     private getVideoType(url: string): string {
-        const extension = url.split('.').pop()?.toLowerCase();
+        const effectiveUrl = this.getEffectiveSourceUrl(url);
+        const extension = getExtensionFromUrl(effectiveUrl)?.toLowerCase();
         switch (extension) {
             case 'mkv':
                 return 'video/matroska'; // Changed from 'mkv'
             case 'm3u8':
+                return 'm3u8';
+            case 'ts':
+                // Xtream live endpoints are commonly TS-backed live streams.
                 return 'm3u8';
             case 'mp4':
                 return 'mp4';

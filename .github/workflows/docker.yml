@@ -33,7 +33,7 @@ jobs:
           file: ./docker/Dockerfile
           push: true
           tags: |
-              4gray/iptvmate:latest
-              4gray/iptvmate:${{ github.sha }}
-              4gray/iptvmate:${{ steps.package-version.outputs.VERSION }}
+              thomasmcintee/iptvmate:latest
+              thomasmcintee/iptvmate:${{ github.sha }}
+              thomasmcintee/iptvmate:${{ steps.package-version.outputs.VERSION }}
           platforms: linux/amd64,linux/arm64

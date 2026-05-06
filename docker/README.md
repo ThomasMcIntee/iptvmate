@@ -9,8 +9,8 @@ This command will launch the frontend and backend applications. By default, the 
 
 ## Build frontend 
 
-    $ docker build -t 4gray/iptvmate -f docker/Dockerfile .
+    $ docker build -t thomasmcintee/iptvmate -f docker/Dockerfile .
 
 ## Build backend
 
-You can find the backend app with all instructions in a separate GitHub repository - https://github.com/4gray/iptvmate-backend
+You can find the backend app with all instructions in a separate GitHub repository - https://github.com/thomasmcintee/iptvmate-backend

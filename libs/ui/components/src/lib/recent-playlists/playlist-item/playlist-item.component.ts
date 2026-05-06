@@ -36,7 +36,7 @@ export class PlaylistItemComponent implements OnInit {
     portalStatus: PortalStatus = 'unavailable';
     private readonly portalStatusService = inject(PortalStatusService);
 
-    readonly isElectron = !!window.electron;
+    readonly isElectron = !!(globalThis as { electron?: unknown }).electron;
 
     async ngOnInit() {
         await this.checkPortalStatus();

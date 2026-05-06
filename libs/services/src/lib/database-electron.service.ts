@@ -52,12 +52,18 @@ export interface GlobalRecentItem extends XtreamContent {
     providedIn: 'root',
 })
 export class DatabaseService {
+    private get electronApi() {
+        return (globalThis as {
+            electron?: any;
+        }).electron as any;
+    }
+
     /**
      * Delete a playlist and all its related data
      */
     async deletePlaylist(playlistId: string): Promise<boolean> {
         try {
-            await window.electron.dbDeletePlaylist(playlistId);
+            await this.electronApi.dbDeletePlaylist(playlistId);
             return true;
         } catch (error) {
             console.error('Error deleting playlist:', error);
@@ -76,7 +82,7 @@ export class DatabaseService {
         recentlyViewedXtreamIds: { xtreamId: number; viewedAt: string }[];
         hiddenCategories: { xtreamId: number; type: string }[];
     }> {
-        return await window.electron.dbDeleteXtreamContent(playlistId);
+        return await this.electronApi.dbDeleteXtreamContent(playlistId);
     }
 
     /**
@@ -87,7 +93,7 @@ export class DatabaseService {
         favoritedXtreamIds: number[],
         recentlyViewedXtreamIds: { xtreamId: number; viewedAt: string }[]
     ): Promise<void> {
-        await window.electron.dbRestoreXtreamUserData(
+        await this.electronApi.dbRestoreXtreamUserData(
             playlistId,
             favoritedXtreamIds,
             recentlyViewedXtreamIds
@@ -99,7 +105,7 @@ export class DatabaseService {
      */
     async updateXtreamPlaylist(playlist: any): Promise<boolean> {
         try {
-            await window.electron.dbUpdatePlaylist(playlist.id, {
+            await this.electronApi.dbUpdatePlaylist(playlist.id, {
                 name: playlist.name,
             });
             return true;
@@ -131,7 +137,7 @@ export class DatabaseService {
                     playlist.updateDate
                 ).toISOString();
 
-            await window.electron.dbUpdatePlaylist(playlist.id, updates);
+            await this.electronApi.dbUpdatePlaylist(playlist.id, updates);
             return true;
         } catch (error) {
             console.error('Error updating playlist details:', error);
@@ -146,7 +152,7 @@ export class DatabaseService {
         playlistId: string,
         type: 'live' | 'movies' | 'series'
     ): Promise<boolean> {
-        return await window.electron.dbHasCategories(playlistId, type);
+        return await this.electronApi.dbHasCategories(playlistId, type);
     }
 
     /**
@@ -156,7 +162,7 @@ export class DatabaseService {
         playlistId: string,
         type: 'live' | 'movies' | 'series'
     ): Promise<XCategoryFromDb[]> {
-        return await window.electron.dbGetCategories(playlistId, type);
+        return await this.electronApi.dbGetCategories(playlistId, type);
     }
 
     /**
@@ -169,7 +175,7 @@ export class DatabaseService {
         type: 'live' | 'movies' | 'series',
         hiddenCategoryXtreamIds?: number[]
     ): Promise<void> {
-        await window.electron.dbSaveCategories(
+        await this.electronApi.dbSaveCategories(
             playlistId,
             categories,
             type,
@@ -184,7 +190,7 @@ export class DatabaseService {
         playlistId: string,
         type: 'live' | 'movies' | 'series'
     ): Promise<XCategoryFromDb[]> {
-        return await window.electron.dbGetAllCategories(playlistId, type);
+        return await this.electronApi.dbGetAllCategories(playlistId, type);
     }
 
     /**
@@ -195,7 +201,7 @@ export class DatabaseService {
         hidden: boolean
     ): Promise<boolean> {
         try {
-            await window.electron.dbUpdateCategoryVisibility(
+            await this.electronApi.dbUpdateCategoryVisibility(
                 categoryIds,
                 hidden
             );
@@ -213,7 +219,7 @@ export class DatabaseService {
         playlistId: string,
         type: 'live' | 'movie' | 'series'
     ): Promise<boolean> {
-        return await window.electron.dbHasContent(playlistId, type);
+        return await this.electronApi.dbHasContent(playlistId, type);
     }
 
     /**
@@ -223,7 +229,7 @@ export class DatabaseService {
         playlistId: string,
         type: 'live' | 'movie' | 'series'
     ): Promise<XtreamContent[]> {
-        return await window.electron.dbGetContent(playlistId, type);
+        return await this.electronApi.dbGetContent(playlistId, type);
     }
 
     /**
@@ -237,11 +243,11 @@ export class DatabaseService {
     ): Promise<number> {
         // Setup progress listener if callback provided
         if (onProgress) {
-            window.electron.onDbSaveContentProgress(onProgress);
+            this.electronApi.onDbSaveContentProgress(onProgress);
         }
 
         try {
-            const result = await window.electron.dbSaveContent(
+            const result = await this.electronApi.dbSaveContent(
                 playlistId,
                 streams,
                 type
@@ -250,7 +256,7 @@ export class DatabaseService {
         } finally {
             // Clean up the listener
             if (onProgress) {
-                window.electron.removeDbSaveContentProgress();
+                this.electronApi.removeDbSaveContentProgress();
             }
         }
     }
@@ -264,7 +270,7 @@ export class DatabaseService {
         types: string[],
         excludeHidden?: boolean
     ): Promise<XtreamContent[]> {
-        return await window.electron.dbSearchContent(
+        return await this.electronApi.dbSearchContent(
             playlistId,
             searchTerm,
             types,
@@ -280,7 +286,7 @@ export class DatabaseService {
         types: string[],
         excludeHidden?: boolean
     ): Promise<GlobalSearchResult[]> {
-        return await window.electron.dbGlobalSearch(searchTerm, types, excludeHidden);
+        return await this.electronApi.dbGlobalSearch(searchTerm, types, excludeHidden);
     }
 
     /**
@@ -288,7 +294,7 @@ export class DatabaseService {
      */
     async getGlobalRecentlyViewed(): Promise<GlobalRecentItem[]> {
         try {
-            const items = await window.electron.dbGetRecentlyViewed();
+            const items = await this.electronApi.dbGetRecentlyViewed();
             return items || [];
         } catch (error) {
             console.error('Error getting recently viewed:', error);
@@ -301,7 +307,7 @@ export class DatabaseService {
      */
     async clearGlobalRecentlyViewed(): Promise<void> {
         try {
-            await window.electron.dbClearRecentlyViewed();
+            await this.electronApi.dbClearRecentlyViewed();
         } catch (error) {
             console.error('Error clearing recently viewed:', error);
             throw error;
@@ -312,14 +318,14 @@ export class DatabaseService {
      * Get playlist by ID
      */
     async getPlaylistById(playlistId: string): Promise<XtreamPlaylist | null> {
-        return await window.electron.dbGetPlaylist(playlistId);
+        return await this.electronApi.dbGetPlaylist(playlistId);
     }
 
     /**
      * Create a new playlist
      */
     async createPlaylist(playlist: PlaylistMeta): Promise<void> {
-        await window.electron.dbCreatePlaylist({
+        await this.electronApi.dbCreatePlaylist({
             id: playlist._id,
             name: playlist.title,
             serverUrl: playlist.serverUrl,
@@ -337,7 +343,7 @@ export class DatabaseService {
         playlistId: string
     ): Promise<boolean> {
         try {
-            await window.electron.dbAddFavorite(contentId, playlistId);
+            await this.electronApi.dbAddFavorite(contentId, playlistId);
             return true;
         } catch (error) {
             console.error('Error adding to favorites:', error);
@@ -353,7 +359,7 @@ export class DatabaseService {
         playlistId: string
     ): Promise<boolean> {
         try {
-            await window.electron.dbRemoveFavorite(contentId, playlistId);
+            await this.electronApi.dbRemoveFavorite(contentId, playlistId);
             return true;
         } catch (error) {
             console.error('Error removing from favorites:', error);
@@ -366,7 +372,7 @@ export class DatabaseService {
      */
     async isFavorite(contentId: number, playlistId: string): Promise<boolean> {
         try {
-            return await window.electron.dbIsFavorite(contentId, playlistId);
+            return await this.electronApi.dbIsFavorite(contentId, playlistId);
         } catch (error) {
             console.error('Error checking favorite:', error);
             return false;
@@ -378,7 +384,7 @@ export class DatabaseService {
      */
     async getFavorites(playlistId: string): Promise<XtreamContent[]> {
         try {
-            return await window.electron.dbGetFavorites(playlistId);
+            return await this.electronApi.dbGetFavorites(playlistId);
         } catch (error) {
             console.error('Error getting favorites:', error);
             return [];
@@ -390,7 +396,7 @@ export class DatabaseService {
      */
     async getRecentItems(playlistId: string): Promise<XtreamContent[]> {
         try {
-            return await window.electron.dbGetRecentItems(playlistId);
+            return await this.electronApi.dbGetRecentItems(playlistId);
         } catch (error) {
             console.error('Error getting recent items:', error);
             return [];
@@ -405,7 +411,7 @@ export class DatabaseService {
         playlistId: string
     ): Promise<boolean> {
         try {
-            await window.electron.dbAddRecentItem(contentId, playlistId);
+            await this.electronApi.dbAddRecentItem(contentId, playlistId);
             return true;
         } catch (error) {
             console.error('Error adding recent item:', error);
@@ -418,7 +424,7 @@ export class DatabaseService {
      */
     async clearPlaylistRecentItems(playlistId: string): Promise<boolean> {
         try {
-            await window.electron.dbClearPlaylistRecentItems(playlistId);
+            await this.electronApi.dbClearPlaylistRecentItems(playlistId);
             return true;
         } catch (error) {
             console.error('Error clearing playlist recent items:', error);
@@ -434,7 +440,7 @@ export class DatabaseService {
         playlistId: string
     ): Promise<boolean> {
         try {
-            await window.electron.dbRemoveRecentItem(contentId, playlistId);
+            await this.electronApi.dbRemoveRecentItem(contentId, playlistId);
             return true;
         } catch (error) {
             console.error('Error removing recent item:', error);
@@ -450,7 +456,7 @@ export class DatabaseService {
         playlistId: string
     ): Promise<XtreamContent | null> {
         try {
-            return await window.electron.dbGetContentByXtreamId(
+            return await this.electronApi.dbGetContentByXtreamId(
                 xtreamId,
                 playlistId
             );
@@ -460,3 +466,4 @@ export class DatabaseService {
         }
     }
 }
+

@@ -430,7 +430,6 @@
     .carousel-track {
       animation: none;
       overflow-x: auto;
-      -webkit-overflow-scrolling: touch;
     }
 
     .btn-tv,

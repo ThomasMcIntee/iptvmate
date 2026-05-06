@@ -64,3 +64,8 @@ testem.log
 Thumbs.db
 .angular
 .astro
+
+
+
+.nx/cache
+.nx/workspace-data

@@ -44,21 +44,21 @@ describe('EpgItemDescriptionComponent', () => {
     it('should render epg details in the dialog', () => {
         fixture.detectChanges();
         const titleElement = fixture.debugElement.query(
-            By.css('[data-test="title"]')
+            By.css('.program-title')
         );
         expect(titleElement.nativeElement.textContent.trim()).toContain(
             'TV Show 1'
         );
 
         const categoryElement = fixture.debugElement.query(
-            By.css('[data-test="category"]')
+            By.css('.category-tag')
         );
         expect(categoryElement.nativeElement.textContent.trim()).toContain(
             'Fun'
         );
 
         const descElement = fixture.debugElement.query(
-            By.css('[data-test="desc"]')
+            By.css('.program-description')
         );
         expect(descElement.nativeElement.textContent.trim()).toContain(
             'Highly interesting show about pets'

@@ -56,7 +56,7 @@ export function withStalkerContent() {
                 stalkerSession = inject(StalkerSessionService),
                 translateService = inject(TranslateService)
             ) => ({
-                getCategoryResource: resource({
+                categoryResourceState: resource({
                     params: () => ({
                         contentType: (store as any).selectedContentType(),
                         action: StalkerPortalActions.GetCategories,
@@ -340,13 +340,13 @@ export function withStalkerContent() {
                 ),
                 /** category resource */
                 getCategoryResource: computed(() =>
-                    storeAny.getCategoryResource.value()
+                    storeAny.categoryResourceState.value()
                 ),
                 isCategoryResourceLoading: computed(() =>
-                    storeAny.getCategoryResource.isLoading()
+                    storeAny.categoryResourceState.isLoading()
                 ),
                 isCategoryResourceFailed: computed(() =>
-                    storeAny.getCategoryResource.error()
+                    storeAny.categoryResourceState.error()
                 ),
             };
         }),

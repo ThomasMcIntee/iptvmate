@@ -389,6 +389,8 @@ export class StalkerSessionService {
             console.error('[StalkerSession] Missing portal URL or MAC address');
             throw new Error('Portal URL and MAC address are required');
         }
+        const portalUrl = playlist.portalUrl;
+        const macAddress = playlist.macAddress;
 
         // Get or generate serial number - must be consistent for the MAC
         let serialNumber = playlist.stalkerSerialNumber;
@@ -401,8 +403,8 @@ export class StalkerSessionService {
         const authPromise = (async () => {
             try {
                 const { token } = await this.authenticate(
-                    playlist.portalUrl,
-                    playlist.macAddress,
+                    portalUrl,
+                    macAddress,
                     serialNumber
                 );
                 this.setCachedToken(playlist._id, token);

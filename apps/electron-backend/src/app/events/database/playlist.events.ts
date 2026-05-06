@@ -71,6 +71,19 @@ ipcMain.handle('DB_GET_PLAYLIST', async (event, playlistId: string) => {
 });
 
 /**
+ * Get all playlists
+ */
+ipcMain.handle('DB_GET_ALL_PLAYLISTS', async () => {
+    try {
+        const db = await getDatabase();
+        return await db.select().from(schema.playlists);
+    } catch (error) {
+        console.error('Error getting all playlists:', error);
+        throw error;
+    }
+});
+
+/**
  * Update playlist
  */
 ipcMain.handle(

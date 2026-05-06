@@ -11,6 +11,155 @@ ipcMain.handle('set-user-agent', (event, userAgent, referer) => {
     return true;
 });
 
+ipcMain.handle(
+    'OPEN_SUBTITLES_REQUEST',
+    async (
+        _event,
+        payload: {
+            apiKey: string;
+            language: string;
+            tmdbId?: string | null;
+            season?: number;
+            episode?: number;
+            title?: string;
+            timeoutMs?: number;
+        }
+    ) => {
+        const { apiKey, language, tmdbId, season, episode, title } = payload;
+        const timeoutMs = payload.timeoutMs ?? 5000;
+
+        if (!apiKey) {
+            return null;
+        }
+
+        const isEpisode =
+            Number.isFinite(season) && Number.isFinite(episode);
+        const attempts: Array<Record<string, string>> = [];
+
+        if (isEpisode) {
+            if (tmdbId) {
+                attempts.push({
+                    tmdb_id: String(tmdbId),
+                    languages: language,
+                    type: 'episode',
+                    season_number: String(season),
+                    episode_number: String(episode),
+                });
+                attempts.push({
+                    parent_tmdb_id: String(tmdbId),
+                    languages: language,
+                    type: 'episode',
+                    season_number: String(season),
+                    episode_number: String(episode),
+                });
+            }
+
+            if (title) {
+                attempts.push({
+                    query: title,
+                    languages: language,
+                    type: 'episode',
+                    season_number: String(season),
+                    episode_number: String(episode),
+                });
+            }
+        } else {
+            if (tmdbId) {
+                attempts.push({
+                    tmdb_id: String(tmdbId),
+                    languages: language,
+                    type: 'movie',
+                });
+            }
+
+            if (title) {
+                attempts.push({
+                    query: title,
+                    languages: language,
+                    type: 'movie',
+                });
+            }
+        }
+
+        for (const searchParams of attempts) {
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
+            try {
+                const searchUrl = new URL(
+                    'https://api.opensubtitles.com/api/v1/subtitles'
+                );
+                Object.entries(searchParams).forEach(([key, value]) => {
+                    searchUrl.searchParams.set(key, value);
+                });
+
+                const searchRes = await fetch(searchUrl.toString(), {
+                    method: 'GET',
+                    headers: {
+                        'Api-Key': apiKey,
+                        'User-Agent': 'iptvmate v1',
+                        Accept: 'application/json',
+                    },
+                    signal: controller.signal,
+                });
+
+                if (!searchRes.ok) {
+                    continue;
+                }
+
+                const searchData = (await searchRes.json()) as {
+                    data?: Array<{
+                        attributes?: {
+                            files?: Array<{ file_id?: number }>;
+                        };
+                    }>;
+                };
+
+                const fileId =
+                    searchData?.data?.[0]?.attributes?.files?.[0]?.file_id;
+                if (!fileId) {
+                    continue;
+                }
+
+                const downloadRes = await fetch(
+                    'https://api.opensubtitles.com/api/v1/download',
+                    {
+                        method: 'POST',
+                        headers: {
+                            'Api-Key': apiKey,
+                            'User-Agent': 'iptvmate v1',
+                            Accept: 'application/json',
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            file_id: fileId,
+                            sub_format: 'webvtt',
+                        }),
+                        signal: controller.signal,
+                    }
+                );
+
+                if (!downloadRes.ok) {
+                    continue;
+                }
+
+                const downloadData = (await downloadRes.json()) as {
+                    link?: string;
+                };
+                if (downloadData?.link) {
+                    return downloadData.link;
+                }
+            } catch {
+                // Try the next lookup strategy.
+            } finally {
+                clearTimeout(timeout);
+            }
+        }
+
+        return null;
+    }
+);
+
 /**
  * Sets the user agent header for all http requests
  * @param userAgent user agent to use

@@ -24,7 +24,13 @@ export class EpgService {
     private programCache = new Map<string, CachedProgram>();
     private readonly CACHE_TTL = 60000; // 60 seconds
 
-    private readonly isDesktop = !!window.electron;
+    private get electronApi() {
+        return (globalThis as {
+            electron?: any;
+        }).electron as any;
+    }
+
+    private readonly isDesktop = !!this.electronApi;
 
     readonly epgAvailable$ = this.epgAvailable.asObservable();
     readonly currentEpgPrograms$ = this.currentEpgPrograms.asObservable();
@@ -39,7 +45,12 @@ export class EpgService {
         const validUrls = urls.filter((url) => url?.trim());
         if (validUrls.length === 0) return;
 
-        from(window.electron.fetchEpg(validUrls))
+        from(
+            this.electronApi.fetchEpg(validUrls) as Promise<{
+                success: boolean;
+                message?: string;
+            }>
+        )
             .pipe(
                 tap((result) => {
                     if (result.success) {
@@ -66,7 +77,11 @@ export class EpgService {
         if (!this.isDesktop) return;
         console.log('Fetching EPG for channel ID:', channelId);
 
-        from(window.electron.getChannelPrograms(channelId))
+        from(
+            this.electronApi.getChannelPrograms(channelId) as Promise<
+                EpgProgram[]
+            >
+        )
             .pipe(
                 map((programs: EpgProgram[]) =>
                     programs.map((program) => ({
@@ -121,7 +136,11 @@ export class EpgService {
         }
 
         // Fetch from backend
-        return from(window.electron.getChannelPrograms(channelId)).pipe(
+        return from(
+            this.electronApi.getChannelPrograms(channelId) as Promise<
+                EpgProgram[]
+            >
+        ).pipe(
             map((programs: EpgProgram[]) => {
                 if (!programs || programs.length === 0) {
                     this.programCache.set(channelId, {

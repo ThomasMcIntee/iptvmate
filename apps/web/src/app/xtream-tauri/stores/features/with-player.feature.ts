@@ -138,7 +138,8 @@ export function withPlayer() {
                     title: string,
                     thumbnail: string | null = null,
                     startTime?: number,
-                    contentInfo?: any
+                    contentInfo?: any,
+                    subtitleUrl?: string | null
                 ): void {
                     const playlist = getPlaylistFromStore();
                     const storeAny = store as any;
@@ -156,7 +157,8 @@ export function withPlayer() {
                         playlist?.referrer,
                         playlist?.origin,
                         contentInfo,
-                        startTime
+                        startTime,
+                        subtitleUrl
                     );
                 },
 

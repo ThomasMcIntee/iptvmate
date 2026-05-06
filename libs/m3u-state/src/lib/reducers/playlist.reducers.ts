@@ -8,7 +8,7 @@ export const playlistReducers = [
     on(PlaylistActions.loadPlaylistsSuccess, (state, action): PlaylistState => {
         return {
             ...state,
-            playlists: playlistsAdapter.addMany(action.playlists, {
+            playlists: playlistsAdapter.setAll(action.playlists, {
                 ...state.playlists,
                 allPlaylistsLoaded: true,
             }),

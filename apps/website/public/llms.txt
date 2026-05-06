@@ -4,15 +4,15 @@
 
 ## Canonical URLs
 
-- Website: https://4gray.github.io/iptvmate/
-- Blog: https://4gray.github.io/iptvmate/blog/
-- Latest Release: https://github.com/4gray/iptvmate/releases/latest
-- Release Notes (v0.18): https://4gray.github.io/iptvmate/blog/v0-18-release-notes/
-- Troubleshooting (macOS app damaged fix): https://4gray.github.io/iptvmate/blog/macos-arm-app-damaged-fix/
-- Source Code: https://github.com/4gray/iptvmate
+- Website: https://thomasmcintee.github.io/iptvmate/
+- Blog: https://thomasmcintee.github.io/iptvmate/blog/
+- Latest Release: https://github.com/thomasmcintee/iptvmate/releases/latest
+- Release Notes (v0.18): https://thomasmcintee.github.io/iptvmate/blog/v0-18-release-notes/
+- Troubleshooting (macOS app damaged fix): https://thomasmcintee.github.io/iptvmate/blog/macos-arm-app-damaged-fix/
+- Source Code: https://github.com/thomasmcintee/iptvmate
 - Telegram: https://t.me/iptvmate
-- GitHub Sponsors: https://github.com/sponsors/4gray
-- Ko-fi: https://ko-fi.com/4gray
+- GitHub Sponsors: https://github.com/sponsors/thomasmcintee
+- Ko-fi: https://ko-fi.com/thomasmcintee
 
 ## Product Scope
 
@@ -22,5 +22,5 @@
 
 ## Machine-readable Discovery
 
-- Sitemap: https://4gray.github.io/iptvmate/sitemap-index.xml
-- Robots: https://4gray.github.io/iptvmate/robots.txt
+- Sitemap: https://thomasmcintee.github.io/iptvmate/sitemap-index.xml
+- Robots: https://thomasmcintee.github.io/iptvmate/robots.txt

@@ -70,11 +70,6 @@ export const XtreamStore = signalStore(
         globalRecentItems: computed(() => {
             return store.recentItems();
         }),
-
-        /**
-         * Alias for importCount for backward compatibility
-         */
-        getImportCount: computed(() => store.importCount()),
     })),
 
     // Cross-feature methods & orchestration
@@ -82,8 +77,6 @@ export const XtreamStore = signalStore(
         const xtreamApiService = inject(XtreamApiService);
         const ngrxStore = inject(Store);
         const logger = createLogger('XtreamStore');
-        const searchContent = (store as any)
-            .searchContent as (term: string, types: string[], excludeHidden?: boolean) => Promise<unknown>;
 
         return {
             /**
@@ -226,14 +219,6 @@ export const XtreamStore = signalStore(
                 store.fetchAllContent();
             },
 
-            /**
-             * Search content wrapper for rxMethod compatibility
-             * Can be called with object { term, types, excludeHidden } or direct params
-             */
-            searchContent(params: { term: string; types: string[]; excludeHidden?: boolean }): void {
-                // Call the underlying search method from withSearch
-                void searchContent(params.term, params.types, params.excludeHidden);
-            },
         };
     })
 );

@@ -9,7 +9,7 @@ import {
     createPlaylistObject,
 } from 'm3u-utils';
 import { NgxIndexedDBService } from 'ngx-indexed-db';
-import { combineLatest, map, switchMap } from 'rxjs';
+import { combineLatest, firstValueFrom, from, map, switchMap } from 'rxjs';
 import {
     Channel,
     DbStores,
@@ -20,7 +20,6 @@ import {
     XtreamItem,
     XtreamSerieItem,
 } from 'shared-interfaces';
-
 @Injectable({
     providedIn: 'root',
 })
@@ -29,14 +28,127 @@ export class PlaylistsService {
     private snackBar = inject(MatSnackBar);
     private translateService = inject(TranslateService);
 
+    private get electronApi() {
+        return (globalThis as {
+            electron?: {
+                dbGetAllPlaylists?: () => Promise<
+                    Array<{
+                        id: string;
+                        name: string;
+                        serverUrl?: string | null;
+                        username?: string | null;
+                        password?: string | null;
+                        autoRefresh?: boolean | null;
+                        macAddress?: string | null;
+                        url?: string | null;
+                        filePath?: string | null;
+                        dateCreated?: string | null;
+                        lastUpdated?: string | null;
+                    }>
+                >;
+                dbDeletePlaylist?: (
+                    playlistId: string
+                ) => Promise<{ success: boolean }>;
+            };
+        }).electron;
+    }
+
     getAllPlaylists() {
-        return this.dbService.getAll<Playlist>(DbStores.Playlists).pipe(
-            map((data) =>
-                data.map(({ playlist, items, header, ...rest }) => ({
-                    ...rest,
-                }))
+        const indexedDbPlaylists$ = this.dbService
+            .getAll<Playlist>(DbStores.Playlists)
+            .pipe(
+                map((data) =>
+                    data.map(({ playlist, items, header, ...rest }) => ({
+                        ...rest,
+                    }))
+                )
+            );
+
+        if (!this.electronApi?.dbGetAllPlaylists) {
+            return indexedDbPlaylists$;
+        }
+
+        const sqlitePlaylists$ = from(this.electronApi.dbGetAllPlaylists()).pipe(
+            map((playlists) =>
+                playlists.map(
+                    (playlist): PlaylistMeta => ({
+                        _id: playlist.id,
+                        title: playlist.name,
+                        count: 0,
+                        importDate:
+                            playlist.dateCreated ||
+                            playlist.lastUpdated ||
+                            new Date().toISOString(),
+                        autoRefresh: Boolean(playlist.autoRefresh),
+                        serverUrl: playlist.serverUrl || undefined,
+                        username: playlist.username || undefined,
+                        password: playlist.password || undefined,
+                        macAddress: playlist.macAddress || undefined,
+                        portalUrl: playlist.url || undefined,
+                        url: playlist.url || undefined,
+                        filePath: playlist.filePath || undefined,
+                    })
+                )
             )
         );
+
+        return combineLatest([indexedDbPlaylists$, sqlitePlaylists$]).pipe(
+            map(([indexedDbPlaylists, sqlitePlaylists]) => {
+                const merged = new Map<string, PlaylistMeta>();
+
+                for (const playlist of sqlitePlaylists) {
+                    merged.set(playlist._id, playlist);
+                }
+
+                for (const playlist of indexedDbPlaylists) {
+                    merged.set(playlist._id, {
+                        ...(merged.get(playlist._id) ?? {}),
+                        ...playlist,
+                    });
+                }
+
+                return Array.from(merged.values());
+            })
+        );
+    }
+
+    async cleanupStaleElectronPlaylists(): Promise<{
+        removedPlaylistIds: string[];
+        indexedDbCount: number;
+        sqliteCount: number;
+    }> {
+        if (
+            !this.electronApi?.dbGetAllPlaylists ||
+            !this.electronApi?.dbDeletePlaylist
+        ) {
+            return {
+                removedPlaylistIds: [],
+                indexedDbCount: 0,
+                sqliteCount: 0,
+            };
+        }
+
+        const [indexedDbPlaylists, sqlitePlaylists] = await Promise.all([
+            firstValueFrom(this.dbService.getAll<Playlist>(DbStores.Playlists)),
+            this.electronApi.dbGetAllPlaylists(),
+        ]);
+
+        const indexedDbIds = new Set(indexedDbPlaylists.map((playlist) => playlist._id));
+        const staleSqlitePlaylists = sqlitePlaylists.filter(
+            (playlist) => !indexedDbIds.has(playlist.id)
+        );
+
+        await Promise.all(
+            staleSqlitePlaylists.map((playlist) =>
+                this.electronApi!.dbDeletePlaylist!(playlist.id)
+            )
+        );
+
+        return {
+            removedPlaylistIds: staleSqlitePlaylists.map((playlist) => playlist.id),
+            indexedDbCount: indexedDbPlaylists.length,
+            sqliteCount: sqlitePlaylists.length - staleSqlitePlaylists.length,
+        };
     }
 
     addPlaylist(playlist: Playlist) {

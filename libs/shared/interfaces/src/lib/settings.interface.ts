@@ -30,4 +30,8 @@ export interface Settings {
     remoteControlPort: number;
     /** Custom download folder path (uses system Downloads folder if not set) */
     downloadFolder?: string;
+    /** OpenSubtitles.com API key for automatic subtitle fetching */
+    opensubtitlesApiKey?: string;
+    /** Preferred subtitle language code (e.g. 'en', 'fr', 'de') */
+    subtitleLanguage?: string;
 }

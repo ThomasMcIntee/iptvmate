@@ -44,6 +44,7 @@
                     <app-vjs-player
                         [options]="getVjsOptions(activeChannel)"
                         [volume]="volume"
+                        [showCaptions]="playerSettings.showCaptions!"
                         [class.hide-captions]="!playerSettings.showCaptions"
                     />
                 }
@@ -76,7 +77,7 @@
                                 style="cursor: pointer"
                                 (click)="
                                     openUrl(
-                                        'https://github.com/4gray/iptvmate/wiki/What-is-mpv-video-player-and-how-to-install-it-on-different-operating-systems%3F'
+                                        'https://github.com/thomasmcintee/iptvmate/wiki/What-is-mpv-video-player-and-how-to-install-it-on-different-operating-systems%3F'
                                     )
                                 "
                                 >Installation instructions</a

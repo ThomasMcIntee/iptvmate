@@ -82,6 +82,15 @@ contextBridge.exposeInMainWorld('electron', {
         ipcRenderer.invoke('write-file', filePath, content),
     setUserAgent: (userAgent: string, referer?: string) =>
         ipcRenderer.invoke('set-user-agent', userAgent, referer),
+    openSubtitlesRequest: (payload: {
+        apiKey: string;
+        language: string;
+        tmdbId?: string | null;
+        season?: number;
+        episode?: number;
+        title?: string;
+        timeoutMs?: number;
+    }) => ipcRenderer.invoke('OPEN_SUBTITLES_REQUEST', payload),
     openInMpv: (
         url: string,
         title: string,
@@ -153,6 +162,8 @@ contextBridge.exposeInMainWorld('electron', {
     // Database operations
     dbCreatePlaylist: (playlist: any) =>
         ipcRenderer.invoke('DB_CREATE_PLAYLIST', playlist),
+    dbGetAllPlaylists: () =>
+        ipcRenderer.invoke('DB_GET_ALL_PLAYLISTS'),
     dbGetPlaylist: (playlistId: string) =>
         ipcRenderer.invoke('DB_GET_PLAYLIST', playlistId),
     dbUpdatePlaylist: (playlistId: string, updates: any) =>
