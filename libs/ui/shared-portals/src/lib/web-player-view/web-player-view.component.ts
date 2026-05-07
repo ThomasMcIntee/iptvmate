@@ -1,4 +1,4 @@
-import {
+﻿import {
     Component,
     EventEmitter,
     Output,
@@ -29,6 +29,12 @@ export class WebPlayerViewComponent {
     storage = inject(StorageMap);
     private streamVersion = 0;
     private static readonly XTREAM_TS_SUFFIX_REGEX = /\.ts(?=$|[?#])/i;
+    private static readonly PWA_PROXY_CANDIDATES = [
+        'http://localhost:3000',
+        'http://localhost:3333',
+        'http://localhost:7333',
+    ];
+    private static pwaProxyBasePromise: Promise<string | null> | null = null;
 
     streamUrl = input.required<string>();
     startTime = input<number>(0);
@@ -134,17 +140,53 @@ export class WebPlayerViewComponent {
         return { src: streamUrl, type: mimeType };
     }
 
+    private async resolvePwaProxyBase(): Promise<string | null> {
+        if (!WebPlayerViewComponent.pwaProxyBasePromise) {
+            WebPlayerViewComponent.pwaProxyBasePromise = (async () => {
+                const override = (globalThis as {
+                    __iptvmateProxyBase?: string;
+                }).__iptvmateProxyBase;
+                const candidates = Array.from(
+                    new Set([
+                        ...(override ? [override] : []),
+                        ...WebPlayerViewComponent.PWA_PROXY_CANDIDATES,
+                    ])
+                );
+
+                for (const candidate of candidates) {
+                    try {
+                        const response = await fetch(`${candidate}/stream`);
+                        if (response.status === 400) {
+                            return candidate;
+                        }
+                    } catch {
+                        // Try the next candidate.
+                    }
+                }
+
+                return null;
+            })();
+        }
+
+        return WebPlayerViewComponent.pwaProxyBasePromise;
+    }
+
     private async getPlayableUrl(streamUrl: string): Promise<string> {
+        if (!/^https?:\/\//i.test(streamUrl)) {
+            return streamUrl;
+        }
+
         const electronApi = (globalThis as {
             electron?: { getStreamProxyPort?: () => Promise<number> };
         }).electron;
 
         if (!electronApi?.getStreamProxyPort) {
-            return streamUrl;
-        }
-
-        if (!/^https?:\/\//i.test(streamUrl)) {
-            return streamUrl;
+            // PWA mode: find a backend that actually exposes /stream.
+            const proxyBase = await this.resolvePwaProxyBase();
+            if (!proxyBase) {
+                return streamUrl;
+            }
+            return `${proxyBase}/stream?url=${encodeURIComponent(streamUrl)}`;
         }
 
         try {
@@ -152,7 +194,6 @@ export class WebPlayerViewComponent {
             if (!port) {
                 return streamUrl;
             }
-
             return `http://127.0.0.1:${port}/stream?url=${encodeURIComponent(streamUrl)}`;
         } catch {
             return streamUrl;

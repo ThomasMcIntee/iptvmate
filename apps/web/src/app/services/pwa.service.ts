@@ -6,7 +6,7 @@ import { SwUpdate } from '@angular/service-worker';
 import { Store } from '@ngrx/store';
 import { TranslateService } from '@ngx-translate/core';
 import { PlaylistActions } from 'm3u-state';
-import { catchError, firstValueFrom, throwError } from 'rxjs';
+import { catchError, firstValueFrom, from, throwError } from 'rxjs';
 import { DataService } from 'services';
 import {
     ERROR,
@@ -38,10 +38,48 @@ export class PwaService extends DataService {
 
     /** Proxy URL to avoid CORS issues */
     corsProxyUrl = AppConfig.BACKEND_URL;
+    private readonly backendCandidates = Array.from(
+        new Set([
+            AppConfig.BACKEND_URL,
+            'http://localhost:3000',
+            'http://localhost:3333',
+            'http://localhost:7333',
+        ])
+    );
 
     constructor() {
         super();
         console.log('PWA service initialized...');
+    }
+
+    private isNetworkError(error: unknown): boolean {
+        const status = (error as { status?: number })?.status;
+        const message = String((error as { message?: string })?.message ?? '');
+        return (
+            status === 0 ||
+            message.includes('ERR_CONNECTION_REFUSED') ||
+            message.includes('Failed to fetch')
+        );
+    }
+
+    private async withBackendFallback<T>(
+        requestFactory: (backendUrl: string) => Promise<T>
+    ): Promise<T> {
+        let lastError: unknown;
+
+        for (const backendUrl of this.backendCandidates) {
+            try {
+                this.corsProxyUrl = backendUrl;
+                return await requestFactory(backendUrl);
+            } catch (error) {
+                lastError = error;
+                if (!this.isNetworkError(error)) {
+                    throw error;
+                }
+            }
+        }
+
+        throw lastError;
     }
 
     /** Uses service worker mechanism to check for available application updates */
@@ -182,14 +220,16 @@ export class PwaService extends DataService {
             : {};
         try {
             let result: any;
-            const response = await firstValueFrom(
-                this.http.get(`${this.corsProxyUrl}/xtream`, {
-                    params: {
-                        url: payload.url,
-                        ...payload.params,
-                    },
-                    ...headers,
-                })
+            const response = await this.withBackendFallback((backendUrl) =>
+                firstValueFrom(
+                    this.http.get(`${backendUrl}/xtream`, {
+                        params: {
+                            url: payload.url,
+                            ...payload.params,
+                        },
+                        ...headers,
+                    })
+                )
             );
 
             if (!(response as any).payload) {
@@ -316,8 +356,8 @@ export class PwaService extends DataService {
             });
 
             // Make the fetch request
-            const response = await fetch(
-                `${this.corsProxyUrl}/stalker?${params.toString()}`
+            const response = await this.withBackendFallback((backendUrl) =>
+                fetch(`${backendUrl}/stalker?${params.toString()}`)
             );
 
             if (!response.ok) {
@@ -343,9 +383,15 @@ export class PwaService extends DataService {
     }
 
     getPlaylistFromUrl(url: string) {
-        return this.http.get(`${this.corsProxyUrl}/parse`, {
-            params: { url },
-        });
+        return from(
+            this.withBackendFallback((backendUrl) =>
+                firstValueFrom(
+                    this.http.get(`${backendUrl}/parse`, {
+                        params: { url },
+                    })
+                )
+            )
+        );
     }
 
     removeAllListeners(): void {
