@@ -21,6 +21,23 @@
       "subject": "update"
     },
     "targetVersion": "next",
-    "confirmedPackageUpdates": true
+    "confirmedPackageUpdates": true,
+    "runningMigrations": [],
+    "completedMigrations": {
+      "update-devkit-deep-imports": {
+        "type": "successful",
+        "name": "update-devkit-deep-imports",
+        "changedFiles": [],
+        "ref": "f4b45906345ac7be9d56e9d4b0b551f7c9e10c1b",
+        "nextSteps": []
+      },
+      "update-23-0-0-update-with-module-federation-import": {
+        "type": "successful",
+        "name": "update-23-0-0-update-with-module-federation-import",
+        "changedFiles": [],
+        "ref": "f4b45906345ac7be9d56e9d4b0b551f7c9e10c1b",
+        "nextSteps": []
+      }
+    }
   }
 }
