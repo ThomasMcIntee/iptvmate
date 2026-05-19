@@ -26,6 +26,7 @@
         "build:backend": "nx build electron-backend --configuration=production",
         "serve:frontend": "nx serve web --no-tui",
         "serve:frontend:pwa": "nx serve web --configuration=pwa --no-tui",
+        "serve:frontend:pwa:all": "node scripts/dev/pwa-dev-runner.mjs",
         "serve:backend": "nx serve electron-backend",
         "test:frontend": "nx test web",
         "test:backend": "nx test electron-backend",

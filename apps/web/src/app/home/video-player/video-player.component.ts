@@ -41,6 +41,7 @@ import {
     combineLatestWith,
     filter,
     map,
+    of,
     startWith,
     switchMap,
     take,
@@ -237,6 +238,10 @@ export class VideoPlayerComponent implements OnInit, OnDestroy {
                         Channel[]
                     >;
                 }
+
+                // Ensure switchMap always returns an observable
+                // (e.g. /iptv route without params/query).
+                return of([] as Channel[]);
             })
         );
 

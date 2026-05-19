@@ -16,6 +16,7 @@ import { provideRouterStore, routerReducer } from '@ngrx/router-store';
 import { provideStore } from '@ngrx/store';
 import { provideStoreDevtools } from '@ngrx/store-devtools';
 import { provideTranslateService } from '@ngx-translate/core';
+import { provideTranslateHttpLoader } from '@ngx-translate/http-loader';
 import { PlaylistEffects, playlistReducer } from 'm3u-state';
 import { NgxIndexedDBModule, NgxIndexedDBService } from 'ngx-indexed-db';
 import { NgxSkeletonLoaderModule } from 'ngx-skeleton-loader';
@@ -67,7 +68,12 @@ export const appConfig: ApplicationConfig = {
                 loadingText: 'This item is actually loading...',
             })
         ),
-        provideTranslateService(),
+        provideTranslateService({
+            loader: provideTranslateHttpLoader({
+                prefix: './assets/i18n/',
+                suffix: '.json',
+            }),
+        }),
         {
             provide: DataService,
             useFactory: DataFactory,
