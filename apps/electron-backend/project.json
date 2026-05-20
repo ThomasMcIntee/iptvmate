@@ -25,7 +25,8 @@
                 "outputPath": "dist/apps/electron-backend",
                 "main": "apps/electron-backend/src/main.ts",
                 "tsConfig": "apps/electron-backend/tsconfig.app.json",
-                "assets": ["apps/electron-backend/src/assets"]
+                "assets": ["apps/electron-backend/src/assets"],
+                "buildLibsFromSource": true
             },
             "configurations": {
                 "production": {
