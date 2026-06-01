@@ -24,6 +24,7 @@
       "options": {
         "outputPath": "dist/apps/electron-backend",
         "main": "apps/electron-backend/src/main.ts",
+        "preload": "apps/electron-backend/src/app/api/main.preload.ts",
         "tsConfig": "apps/electron-backend/tsconfig.app.json",
         "assets": ["apps/electron-backend/src/assets"],
         "buildLibsFromSource": true

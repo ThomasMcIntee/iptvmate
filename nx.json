@@ -68,6 +68,39 @@
         "production",
         "^production"
       ]
+    },
+    "build:frontend:pwa": {
+      "outputs": [
+        "{projectRoot}/build"
+      ],
+      "cache": true
+    },
+    "build:backend": {
+      "outputs": [
+        "{projectRoot}/build"
+      ],
+      "cache": true
+    },
+    "build:frontend": {
+      "cache": true
+    },
+    "serve:frontend": {
+      "cache": true
+    },
+    "serve:frontend:all": {
+      "cache": true
+    },
+    "serve:frontend:pwa": {
+      "cache": true
+    },
+    "serve:frontend:pwa:all": {
+      "cache": true
+    },
+    "serve:backend": {
+      "cache": true
+    },
+    "test:frontend": {
+      "cache": true
     }
   },
   "plugins": [
