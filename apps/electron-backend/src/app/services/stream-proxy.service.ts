@@ -22,7 +22,7 @@ const M3U8_CONTENT_TYPES = [
     'audio/mpegurl',
 ];
 
-const STREAM_PROXY_VERSION = '2026-05-14-r6';
+const STREAM_PROXY_VERSION = '2026-06-01-r10';
 // electron-builder unpacks native binaries from inside app.asar into a sibling
 // app.asar.unpacked directory; the module's reported `path` still references
 // the asar location and cannot be spawned, so rewrite it.
@@ -114,7 +114,8 @@ function maybeTranscodeResponse(
     res: ServerResponse,
     proxyRes: IncomingMessage,
     sourceUrl: string,
-    mode: TranscodeMode = 'full'
+    mode: TranscodeMode = 'full',
+    audioStreamIndex?: number
 ): boolean {
     if (!HAS_WORKING_FFMPEG || !FFMPEG_BIN) {
         if (!ffmpegUnavailableLogged) {
@@ -140,7 +141,7 @@ function maybeTranscodeResponse(
         'access-control-allow-methods': 'GET, HEAD, OPTIONS',
         'access-control-allow-headers': 'Range, Content-Type',
         'cache-control': 'no-store',
-        'content-type': 'video/mp2t',
+        'content-type': 'video/mp4',
         'transfer-encoding': 'chunked',
     };
 
@@ -162,6 +163,25 @@ function maybeTranscodeResponse(
                   'yuv420p',
               ];
 
+    const outputArgs = [
+        '-movflags',
+        'frag_keyframe+empty_moov+default_base_moof',
+        '-f',
+        'mp4',
+    ];
+
+    const audioMapArgs =
+        typeof audioStreamIndex === 'number'
+            ? ['-map', `0:a:${audioStreamIndex}?`]
+            : [
+                  '-map',
+                  '0:a:m:language:eng?',
+                  '-map',
+                  '0:a:m:language:und?',
+                  '-map',
+                  '0:a:0?',
+              ];
+
     const ffmpeg = spawn(
         FFMPEG_BIN,
         [
@@ -176,27 +196,29 @@ function maybeTranscodeResponse(
             'pipe:0',
             '-map',
             '0:v:0?',
-            '-map',
-            '0:a:0?',
+            ...audioMapArgs,
             '-sn',
             '-dn',
             ...videoArgs,
             '-c:a',
             'aac',
+            '-profile:a',
+            'aac_low',
             '-b:a',
             '128k',
             '-ac',
             '2',
             '-ar',
             '48000',
+            '-af',
+            'aresample=async=1:first_pts=0',
             '-max_muxing_queue_size',
             '4096',
             '-muxdelay',
             '0',
             '-muxpreload',
             '0',
-            '-f',
-            'mpegts',
+            ...outputArgs,
             'pipe:1',
         ],
         {
@@ -275,14 +297,15 @@ function maybeTranscodeResponse(
  * Audio-only transcode by giving ffmpeg the source URL directly. This lets
  * ffmpeg use HTTP Range requests to read MP4 `moov` atoms (which often sit at
  * the end of the file), something we cannot do when piping into stdin.
- * Video is copied; audio is re-encoded to AAC inside an MPEG-TS container so
+ * Video is copied; audio is re-encoded to AAC inside fragmented MP4 so
  * Chromium can decode it even when the source uses AC-3/E-AC-3/DTS.
  */
 function spawnUrlAudioTranscode(
     req: IncomingMessage,
     res: ServerResponse,
     targetUrl: string,
-    userAgent?: string
+    userAgent?: string,
+    audioStreamIndex?: number
 ): void {
     if (!HAS_WORKING_FFMPEG || !FFMPEG_BIN) {
         res.writeHead(502);
@@ -299,7 +322,7 @@ function spawnUrlAudioTranscode(
         'access-control-allow-methods': 'GET, HEAD, OPTIONS',
         'access-control-allow-headers': 'Range, Content-Type',
         'cache-control': 'no-store',
-        'content-type': 'video/mp2t',
+        'content-type': 'video/mp4',
         'transfer-encoding': 'chunked',
     });
 
@@ -317,12 +340,22 @@ function spawnUrlAudioTranscode(
         '5',
         '-rw_timeout',
         '15000000',
-        '-tls_verify',
-        '0',
     ];
     if (userAgent) {
         ffmpegArgs.push('-user_agent', userAgent);
     }
+    const audioMapArgs =
+        typeof audioStreamIndex === 'number'
+            ? ['-map', `0:a:${audioStreamIndex}?`]
+            : [
+                  '-map',
+                  '0:a:m:language:eng?',
+                  '-map',
+                  '0:a:m:language:und?',
+                  '-map',
+                  '0:a:0?',
+              ];
+
     ffmpegArgs.push(
         '-probesize',
         '10M',
@@ -332,20 +365,25 @@ function spawnUrlAudioTranscode(
         targetUrl,
         '-map',
         '0:v:0?',
-        '-map',
-        '0:a:0?',
+        ...audioMapArgs,
         '-sn',
         '-dn',
         '-c:v',
         'copy',
         '-c:a',
         'aac',
+        '-profile:a',
+        'aac_low',
         '-b:a',
         '192k',
         '-ac',
         '2',
         '-ar',
         '48000',
+        '-af',
+        'aresample=async=1:first_pts=0',
+        '-movflags',
+        'frag_keyframe+empty_moov+default_base_moof',
         '-max_muxing_queue_size',
         '4096',
         '-muxdelay',
@@ -353,7 +391,7 @@ function spawnUrlAudioTranscode(
         '-muxpreload',
         '0',
         '-f',
-        'mpegts',
+        'mp4',
         'pipe:1'
     );
 
@@ -421,6 +459,15 @@ function handleProxyRequest(req: IncomingMessage, res: ServerResponse) {
     const params = new URLSearchParams(reqUrl.slice(searchStart + 1));
     const targetUrl = params.get('url');
     const transcodeParam = params.get('transcode');
+    const audioIndexRaw = params.get('aidx');
+    const audioIndexParsed =
+        audioIndexRaw !== null ? Number.parseInt(audioIndexRaw, 10) : NaN;
+    const audioStreamIndex =
+        Number.isInteger(audioIndexParsed) &&
+        audioIndexParsed >= 0 &&
+        audioIndexParsed <= 8
+            ? audioIndexParsed
+            : undefined;
     const shouldTranscode = transcodeParam === '1' || transcodeParam === 'audio';
     const transcodeMode: TranscodeMode = transcodeParam === 'audio' ? 'audio' : 'full';
     const shouldTranscodeRequest = shouldTranscode && req.method === 'GET';
@@ -432,7 +479,7 @@ function handleProxyRequest(req: IncomingMessage, res: ServerResponse) {
     }
 
     console.log(
-        `[StreamProxy] ${req.method ?? 'GET'} -> ${targetUrl} (transcode=${shouldTranscode ? transcodeMode : '0'})`
+        `[StreamProxy] ${req.method ?? 'GET'} -> ${targetUrl} (transcode=${shouldTranscode ? transcodeMode : '0'}, aidx=${audioStreamIndex ?? 'auto'})`
     );
 
     let target: URL;
@@ -449,7 +496,13 @@ function handleProxyRequest(req: IncomingMessage, res: ServerResponse) {
     if (shouldTranscodeRequest && transcodeMode === 'audio') {
         const uaHeader = req.headers['user-agent'];
         const userAgent = Array.isArray(uaHeader) ? uaHeader[0] : uaHeader;
-        spawnUrlAudioTranscode(req, res, target.toString(), userAgent);
+        spawnUrlAudioTranscode(
+            req,
+            res,
+            target.toString(),
+            userAgent,
+            audioStreamIndex
+        );
         return;
     }
 
@@ -530,7 +583,8 @@ function handleProxyRequest(req: IncomingMessage, res: ServerResponse) {
                     res,
                     proxyRes,
                     currentTarget.toString(),
-                    transcodeMode
+                    transcodeMode,
+                    audioStreamIndex
                 );
                 if (didStartTranscoding) {
                     return;

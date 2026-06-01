@@ -10,23 +10,20 @@
       "outputs": ["{workspaceRoot}/dist/apps/website"],
       "inputs": ["production", "^production"],
       "options": {
-        "command": "npx astro build",
-        "cwd": "apps/website"
+        "command": "npx astro build --root apps/website"
       }
     },
     "serve": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "npx astro dev --port 4321",
-        "cwd": "apps/website"
+        "command": "npx astro dev --root apps/website --port 4321"
       }
     },
     "preview": {
       "executor": "nx:run-commands",
       "dependsOn": ["build"],
       "options": {
-        "command": "npx astro preview --port 4322",
-        "cwd": "apps/website"
+        "command": "npx astro preview --root apps/website --port 4322"
       }
     }
   }

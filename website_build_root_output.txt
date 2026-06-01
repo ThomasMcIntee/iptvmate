@@ -1,0 +1,31 @@
+[2m14:58:45[22m [34m[content][39m Syncing content
+[2m14:58:45[22m [34m[content][39m Synced content
+[2m14:58:45[22m [34m[types][39m Generated [2m1.27s[22m
+[2m14:58:45[22m [34m[build][39m output: [34m"static"[39m
+[2m14:58:45[22m [34m[build][39m mode: [34m"static"[39m
+[2m14:58:45[22m [34m[build][39m directory: [34mC:\prgtm\iptvmate\iptvmate-0.21.1.worktrees\agents-electron-window-setup\dist\apps\website\[39m
+[2m14:58:45[22m [34m[build][39m Collecting build info...
+[2m14:58:45[22m [34m[build][39m [32mΓ£ô Completed in 1.46s.[39m
+[2m14:58:45[22m [34m[build][39m Building static entrypoints...
+
+warn - The `content` option in your Tailwind CSS configuration is missing or empty.
+warn - Configure your content sources or your generated CSS will be missing styles.
+warn - https://tailwindcss.com/docs/content-configuration
+14:58:47 [ERROR] [vite] Γ£ù Build failed in 2.02s
+[vite:css] [postcss] C:/prgtm/iptvmate/iptvmate-0.21.1.worktrees/agents-electron-window-setup/apps/website/src/styles/global.css:1:1: The `bg-surface-950` class does not exist. If `bg-surface-950` is a custom class, make sure it is defined within a `@layer` directive.
+file: C:/prgtm/iptvmate/iptvmate-0.21.1.worktrees/agents-electron-window-setup/apps/website/src/styles/global.css:1:0
+  Hint:
+    Browser APIs are not available on the server.
+    
+    If the code is in a framework component, try to access these objects after rendering using lifecycle methods or use a `client:only` directive to make the component exclusively run on the client.
+    
+    See https://docs.astro.build/en/guides/troubleshooting/#document-or-window-is-not-defined for more information.
+    		
+  Location:
+    C:/prgtm/iptvmate/iptvmate-0.21.1.worktrees/agents-electron-window-setup/apps/website/src/styles/global.css:1:0
+  Stack trace:
+    at Input.error (C:\prgtm\iptvmate\iptvmate-0.21.1.worktrees\agents-electron-window-setup\node_modules\.pnpm\postcss@8.5.15\node_modules\postcss\lib\input.js:135:16)
+    at processApply (C:\prgtm\iptvmate\iptvmate-0.21.1.worktrees\agents-electron-window-setup\node_modules\.pnpm\tailwindcss@3.4.19_yaml@2.9.0\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:380:29)
+    at C:\prgtm\iptvmate\iptvmate-0.21.1.worktrees\agents-electron-window-setup\node_modules\.pnpm\tailwindcss@3.4.19_yaml@2.9.0\node_modules\tailwindcss\lib\processTailwindFeatures.js:55:50
+    at async LazyResult.runAsync (C:\prgtm\iptvmate\iptvmate-0.21.1.worktrees\agents-electron-window-setup\node_modules\.pnpm\postcss@8.5.15\node_modules\postcss\lib\lazy-result.js:293:11)
+    at async compilePostCSS (file:///C:/prgtm/iptvmate/iptvmate-0.21.1.worktrees/agents-electron-window-setup/node_modules/.pnpm/vite@7.3.3_@types+node@25.6_decdcef36bd07bbc8d13d24c1e4411ca/node_modules/vite/dist/node/chunks/config.js:30149:6)

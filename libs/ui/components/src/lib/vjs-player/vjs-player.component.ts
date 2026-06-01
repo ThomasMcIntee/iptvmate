@@ -23,6 +23,7 @@ type ElectronApi = {
 
 type BuildProxyUrlOptions = {
     forceTranscode?: boolean;
+    forceAudioTranscode?: boolean;
 };
 
 interface PlaybackError {
@@ -448,10 +449,14 @@ export class VjsPlayerComponent
                         console.log('[VjsPlayer] Using proxy as primary source for IPTV stream');
                         // Pass the resolved MIME type so the browser doesn't reject the
                         // proxy URL immediately (it has no file extension to sniff from).
-                        const isTranscodedProxy = proxiedUrl.includes('transcode=1');
-                        const resolvedType = isTranscodedProxy
-                            ? 'video/mp2t'
-                            : source.type || this.inferMimeType(source.src);
+                        const isAudioTranscodedProxy =
+                            proxiedUrl.includes('transcode=audio');
+                        const isFullTranscodedProxy = proxiedUrl.includes('transcode=1');
+                        const resolvedType = isAudioTranscodedProxy
+                            ? 'video/mp4'
+                            : isFullTranscodedProxy
+                              ? 'video/mp4'
+                              : source.type || this.inferMimeType(source.src);
                         // Apply proxy source directly to avoid recursive setPlayerSource()
                         // calls toggling keys between original/proxy URLs.
                         this.setPlayerSourceDirect(
@@ -537,7 +542,9 @@ export class VjsPlayerComponent
             const directSource = normalizedSources[0];
             const isHttpSource = /^https?:\/\//i.test(directSource.src);
             const isAlreadyProxied = directSource.src.includes('/stream?url=');
-            const isTranscodedProxy = directSource.src.includes('transcode=1');
+            const isTranscodedProxy =
+                directSource.src.includes('transcode=1') ||
+                directSource.src.includes('transcode=audio');
 
             if (isHttpSource && isAlreadyProxied && !isTranscodedProxy) {
                 const onProxyPassthroughError = async () => {
@@ -566,7 +573,7 @@ export class VjsPlayerComponent
 
                     if (transcodedProxyUrl) {
                         this.setPlayerSource(
-                                    { src: transcodedProxyUrl },
+                            { src: transcodedProxyUrl, type: 'video/mp4' },
                             true,
                             false
                         );
@@ -652,6 +659,19 @@ export class VjsPlayerComponent
             }
         }
 
+        // WebAudio silence analysis requires CORS-enabled media access.
+        // Ensure crossOrigin is set before the new source is loaded.
+        try {
+            const techVideo = this.player
+                .el()
+                ?.querySelector?.('video') as HTMLVideoElement | null;
+            if (techVideo) {
+                techVideo.crossOrigin = 'anonymous';
+            }
+        } catch {
+            // best-effort only
+        }
+
         this.player.pause();
         console.log('Calling player.src() with:', normalizedSources);
         this.player.src(normalizedSources as Parameters<typeof this.player.src>[0]);
@@ -730,8 +750,22 @@ export class VjsPlayerComponent
 
             const params = new URLSearchParams({ url: sourceUrl });
             const forceTranscode = options?.forceTranscode === true;
+            const forceAudioTranscode = options?.forceAudioTranscode === true;
+            const preferAudioTranscode =
+                forceAudioTranscode ||
+                this.shouldPreferAudioTranscodeProxySource(sourceUrl, sourceType);
 
-            if (forceTranscode || this.shouldTranscodeProxySource(sourceUrl, sourceType)) {
+            if (preferAudioTranscode) {
+                params.set('transcode', 'audio');
+                console.log(
+                    forceAudioTranscode
+                        ? '[VjsPlayer] Forcing proxy audio transcode for silent playback recovery'
+                        : '[VjsPlayer] Proxy will use audio-only transcode for movie container source'
+                );
+            } else if (
+                forceTranscode ||
+                this.shouldTranscodeProxySource(sourceUrl, sourceType)
+            ) {
                 params.set('transcode', '1');
                 console.log(
                     forceTranscode
@@ -794,6 +828,44 @@ export class VjsPlayerComponent
         return /\.(mov|mkv|avi|wmv|mpeg|mpg|ts)(\?|$)/i.test(sourceUrl);
     }
 
+    private shouldPreferAudioTranscodeProxySource(
+        sourceUrl: string,
+        sourceType?: string
+    ): boolean {
+        // Prefer audio-only transcode first for movie-like containers where video
+        // is often decodable but audio codec/track selection is problematic.
+        if (!this.isRemoteIptvSource(sourceUrl)) {
+            return false;
+        }
+
+        const normalizedType = sourceType?.toLowerCase() ?? '';
+        const isLikelyMovieOrSeriesPath =
+            sourceUrl.includes('/movie/') || sourceUrl.includes('/series/');
+        const isLikelyHls =
+            /\.m3u8(\?|$)/i.test(sourceUrl) ||
+            normalizedType.includes('mpegurl') ||
+            normalizedType.includes('application/vnd.apple.mpegurl');
+        const isLikelyDirectPlayableContainer =
+            /\.(mp4|m4v|webm)(\?|$)/i.test(sourceUrl) ||
+            normalizedType.includes('mp4') ||
+            normalizedType.includes('webm');
+
+        if (
+            isLikelyMovieOrSeriesPath &&
+            !isLikelyHls &&
+            !isLikelyDirectPlayableContainer
+        ) {
+            return true;
+        }
+
+        return (
+            /\.(mkv|avi|mov)(\?|$)/i.test(sourceUrl) ||
+            normalizedType.includes('matroska') ||
+            normalizedType.includes('quicktime') ||
+            normalizedType.includes('x-msvideo')
+        );
+    }
+
 
 
     /**
@@ -809,8 +881,9 @@ export class VjsPlayerComponent
         if (!sourceUrl) return;
         // Already retried (or actively checking) this source — bail.
         if (this.silenceCheckAttemptedFor === sourceUrl) return;
-        // Source is already an audio-transcode or full-transcode proxy URL — no recovery possible.
-        if (sourceUrl.includes('transcode=audio') || sourceUrl.includes('transcode=1')) {
+        // Source is already audio-transcoded — no further audio-recovery possible.
+        // For full-transcoded streams, allow one silence-based retry to audio-only.
+        if (sourceUrl.includes('transcode=audio')) {
             return;
         }
         // Only worth checking for proxied sources (CORS-safe + retry path exists).
@@ -864,7 +937,8 @@ export class VjsPlayerComponent
                 if (this.silenceSamples.length >= 16) {
                     const maxPeak = Math.max(...this.silenceSamples);
                     this.stopSilenceCheck();
-                    if (maxPeak === 0) {
+                    // Some silent streams still report tiny waveform jitter (1-2).
+                    if (maxPeak <= 2) {
                         console.warn(
                             '[VjsPlayer] No audio detected for 4s — retrying with audio-only transcode'
                         );
@@ -923,13 +997,11 @@ export class VjsPlayerComponent
             const target = u.searchParams.get('url');
             if (!target) return;
             const transcodedUrl = await this.buildProxyUrl(target, undefined, {
-                forceTranscode: true,
+                forceAudioTranscode: true,
             });
-            // Replace with audio-only flavor by swapping the transcode param.
             if (!transcodedUrl) return;
-            const finalUrl = transcodedUrl.replace('transcode=1', 'transcode=audio');
             this.setPlayerSource(
-                { src: finalUrl, type: 'video/mp2t' },
+                { src: transcodedUrl, type: 'video/mp4' },
                 true,
                 false
             );
