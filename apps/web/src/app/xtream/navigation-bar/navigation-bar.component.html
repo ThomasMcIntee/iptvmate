@@ -5,6 +5,17 @@
   </button>
 
   @if (showCategories) {
+    <button
+      mat-button
+      (click)="openCategoryVisibilityDialog()"
+      matTooltip="Show/hide categories"
+    >
+      <mat-icon>tune</mat-icon>
+      <span class="button-label">Manage categories</span>
+    </button>
+  }
+
+  @if (showCategories) {
     <mat-button-toggle-group
       name="contentType"
       aria-label="Content Type"

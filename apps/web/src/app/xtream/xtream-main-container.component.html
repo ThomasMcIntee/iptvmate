@@ -21,6 +21,7 @@
     [favoritesLiveStream$]="favoritesLiveStream$"
     (addToFavoritesClicked)="addToFavorites($event)"
     (removeFromFavoritesClicked)="removeFromFavorites($event)"
+    (categoryVisibilityClicked)="openCategoryVisibilityDialog()"
 />
 
 @if (isLoading) {
@@ -36,7 +37,7 @@
         @case ('category') {
             <app-category-view
                 (categoryClicked)="categoryClicked($event)"
-                [items]="items"
+                [items]="getVisibleCategoryItems()"
             />
         }
         @case ('category_content') {

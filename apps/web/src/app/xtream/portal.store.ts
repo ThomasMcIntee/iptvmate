@@ -8,6 +8,7 @@ export interface PortalState {
     currentVod: any;
     currentSerial: any;
     sortType: string;
+    hiddenCategoryIdsByType: Record<string, string[]>;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -20,7 +21,10 @@ export class PortalStore extends ComponentStore<PortalState> {
             content: [],
             hideExternalInfoDialog:
                 localStorage.getItem('hideExternalInfoDialog') === 'true',
-            sortType: undefined
+            sortType: undefined,
+            hiddenCategoryIdsByType: JSON.parse(
+                localStorage.getItem('xtreamHiddenCategoryIdsByType') ?? '{}'
+            ),
         });
     }
 
@@ -34,6 +38,9 @@ export class PortalStore extends ComponentStore<PortalState> {
     );
 
     readonly sortType = this.selectSignal((state) => state.sortType);
+    readonly hiddenCategoryIdsByType = this.selectSignal(
+        (state) => state.hiddenCategoryIdsByType
+    );
 
     readonly getContentById = (id: string) =>
         this.selectSignal((state) => state.content.find((i) => i.id === id));
@@ -82,5 +89,27 @@ export class PortalStore extends ComponentStore<PortalState> {
             ...state,
             sortType,
         })
+    );
+
+    readonly setHiddenCategoryIdsForType = this.updater(
+        (
+            state,
+            payload: { contentType: string; hiddenIds: string[] }
+        ): PortalState => {
+            const next = {
+                ...state.hiddenCategoryIdsByType,
+                [payload.contentType]: payload.hiddenIds,
+            };
+
+            localStorage.setItem(
+                'xtreamHiddenCategoryIdsByType',
+                JSON.stringify(next)
+            );
+
+            return {
+                ...state,
+                hiddenCategoryIdsByType: next,
+            };
+        }
     );
 }

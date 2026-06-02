@@ -33,6 +33,7 @@
     "test:backend": "nx test electron-backend",
     "package:app": "nx run electron-backend:make --prepackageOnly",
     "make:app": "nx run electron-backend:make",
+    "make:app:win": "powershell -NoProfile -Command \"$env:PATH = \"\"$env:SystemRoot\\System32;$env:PATH\"\"; nx run electron-backend:make --outputStyle=static\"",
     "serve:website": "nx serve website",
     "build:website": "nx build website"
   },

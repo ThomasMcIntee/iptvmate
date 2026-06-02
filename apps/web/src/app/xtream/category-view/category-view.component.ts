@@ -1,7 +1,5 @@
 import { Component, computed, inject, input, output } from '@angular/core';
-import { MatCardModule } from '@angular/material/card';
-import { MatIconModule } from '@angular/material/icon';
-import { FilterPipe } from '@iptvmate/pipes';
+import { MatListModule } from '@angular/material/list';
 import { TranslatePipe } from '@ngx-translate/core';
 import { XtreamCategory } from 'shared-interfaces';
 import { PlaylistErrorViewComponent } from '../playlist-error-view/playlist-error-view.component';
@@ -11,31 +9,31 @@ import { PortalStore } from '../portal.store';
     selector: 'app-category-view',
     template: `
         @if (items().length > 0) {
-            @for (item of visibleItems(); track $index) {
-                <mat-card
-                    appearance="outlined"
-                    class="category-item"
-                    (click)="categoryClicked.emit(item)"
-                >
-                    <mat-card-content>
+            <mat-nav-list>
+                @for (item of visibleItems(); track $index) {
+                    <mat-list-item
+                        class="category-item"
+                        [attr.data-category-id]="$any(item).category_id ?? item.id"
+                        (click)="categoryClicked.emit(item)"
+                    >
                         {{
                             item.category_name ||
                                 $any(item).name ||
                                 'No category name'
                         }}
-                    </mat-card-content>
-                </mat-card>
-            }
-            @if (!visibleItems().length) {
-                <app-playlist-error-view
-                    title="No results"
-                    [description]="
-                        'PORTALS.EMPTY_LIST_VIEW.NO_SEARCH_RESULTS' | translate
-                    "
-                    [showActionButtons]="false"
-                    [viewType]="'NO_SEARCH_RESULTS'"
-                />
-            }
+                    </mat-list-item>
+                }
+                @if (!visibleItems().length) {
+                    <app-playlist-error-view
+                        title="No results"
+                        [description]="
+                            'PORTALS.EMPTY_LIST_VIEW.NO_SEARCH_RESULTS' | translate
+                        "
+                        [showActionButtons]="false"
+                        [viewType]="'NO_SEARCH_RESULTS'"
+                    />
+                }
+            </mat-nav-list>
         } @else {
             <app-playlist-error-view
                 [title]="'PORTALS.ERROR_VIEW.EMPTY_CATEGORY.TITLE' | translate"
@@ -49,8 +47,7 @@ import { PortalStore } from '../portal.store';
     `,
     styleUrl: './category-view.component.scss',
     imports: [
-        MatCardModule,
-        MatIconModule,
+        MatListModule,
         PlaylistErrorViewComponent,
         TranslatePipe,
     ],

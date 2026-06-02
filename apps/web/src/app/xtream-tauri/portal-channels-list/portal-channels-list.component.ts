@@ -102,6 +102,15 @@ export class PortalChannelsListComponent implements AfterViewInit, OnDestroy {
         return item.xtream_id;
     }
 
+    onChannelClick(event: MouseEvent, item: XtreamItem): void {
+        const target = event.target as HTMLElement | null;
+        if (target?.closest('.favorite-btn')) {
+            return;
+        }
+
+        this.playClicked.emit(item);
+    }
+
     ngOnInit(): void {
         const { categoryId } = this.route.snapshot.params;
         if (categoryId)
@@ -213,6 +222,14 @@ export class PortalChannelsListComponent implements AfterViewInit, OnDestroy {
         const selectedCategory = this.xtreamStore.selectedCategoryId();
         const itemId = Number((item as any).category_id || item.id);
         return selectedCategory !== null && selectedCategory === itemId;
+    }
+
+    onFavoriteClick(event: MouseEvent, item: any): void {
+        event.preventDefault();
+        event.stopPropagation();
+        (event as MouseEvent & { stopImmediatePropagation?: () => void })
+            .stopImmediatePropagation?.();
+        this.toggleFavorite(event, item);
     }
 
     toggleFavorite(event: Event, item: any) {

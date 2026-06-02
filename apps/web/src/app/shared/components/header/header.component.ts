@@ -63,6 +63,15 @@ export class HeaderComponent {
         return url === '' || url === '/' || url.startsWith('/?');
     }
 
+    get isDesktopShell(): boolean {
+        // Mirror Electron's desktop header controls in browser desktop widths.
+        return this.isDesktop || window.innerWidth > 768;
+    }
+
+    get showBrowserWindowControls(): boolean {
+        return !this.isDesktop && this.isDesktopShell;
+    }
+
     get showFilterControls(): boolean {
         const url = this.router.url || '';
         // Tune icon (desktop/mobile): Home + M3U playlist pages.

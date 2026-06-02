@@ -30,13 +30,14 @@
 }
 
 .channel-item {
-    display: flex;
+    display: grid;
+    grid-template-columns: 48px minmax(0, 1fr) 40px;
     align-items: center;
     padding: 8px;
     margin: 2px 4px;
-    border-radius: 4px;
+    border-radius: 8px;
     cursor: pointer;
-    transition: background-color 0.2s ease;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
     height: 64px;
     box-sizing: border-box;
     gap: 8px;
@@ -44,9 +45,12 @@
     width: calc(100% - 8px);
     min-width: 0; // Allow shrinking below content size
     overflow: hidden;
+    border: 1px solid transparent;
+    position: relative;
 
     &:hover {
-        background-color: rgba(255, 255, 255, 0.1);
+        background-color: rgba(255, 255, 255, 0.08);
+        border-color: rgba(29, 185, 84, 0.25);
 
         .title {
             color: #1db954;
@@ -55,6 +59,7 @@
 
     &.active {
         background-color: rgba(29, 185, 84, 0.2);
+        border-color: rgba(29, 185, 84, 0.45);
 
         .title {
             color: #1db954;
@@ -138,26 +143,32 @@
 }
 
 .favorite-btn {
-    background: none;
-    border: none;
-    padding: 8px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 213, 74, 0.45);
+    width: 32px;
+    height: 32px;
+    border-radius: 999px;
+    padding: 0;
     cursor: pointer;
-    color: inherit;
-    opacity: 0.6;
+    color: #ffd54a;
+    opacity: 1;
     transition: opacity 0.2s ease;
-    flex-shrink: 0;
     display: flex;
     align-items: center;
     justify-content: center;
+    pointer-events: auto;
+    justify-self: end;
+    flex-shrink: 0;
 
     &:hover {
         opacity: 1;
     }
 
-    mat-icon {
-        font-size: 20px;
-        width: 20px;
-        height: 20px;
+    .favorite-btn__star {
+        font-size: 22px;
+        line-height: 1;
+        font-weight: 700;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
     }
 }
 
@@ -198,12 +209,11 @@
     }
 
     .favorite-btn {
-        padding: 4px;
+        width: 28px;
+        height: 28px;
 
-        mat-icon {
-            font-size: 18px;
-            width: 18px;
-            height: 18px;
+        .favorite-btn__star {
+            font-size: 17px;
         }
     }
 
@@ -223,13 +233,19 @@
     }
 
     .favorite-btn {
-        display: none;
+        width: 24px;
+        height: 24px;
+
+        .favorite-btn__star {
+            font-size: 15px;
+        }
     }
 }
 
 @container (max-width: 260px) {
     .stream-icon {
-        display: none;
+        width: 28px;
+        height: 28px;
     }
 
     .channel-item {

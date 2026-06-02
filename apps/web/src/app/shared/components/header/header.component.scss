@@ -34,6 +34,43 @@
     }
 }
 
+.window-controls-faux {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    z-index: 2;
+    pointer-events: none;
+}
+
+.window-controls-faux .dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 999px;
+    box-shadow:
+        0 0 0 1px rgba(0, 0, 0, 0.2) inset,
+        0 1px 2px rgba(0, 0, 0, 0.18);
+}
+
+.window-controls-faux .close {
+    background: #ff5f57;
+}
+
+.window-controls-faux .minimize {
+    background: #febc2e;
+}
+
+.window-controls-faux .maximize {
+    background: #28c840;
+}
+
+:host-context(app-root.browser-desktop-shell) .modern-header {
+    padding-left: 82px;
+}
+
 // Refined home page styling - seamless with #131316
 :host.home-header .modern-header {
     background: #131316;
@@ -481,6 +518,10 @@
 }
 
 @media (max-width: 768px) {
+    .window-controls-faux {
+        display: none;
+    }
+
     // Hide desktop menu, show mobile menu
     .desktop-menu {
         display: none;

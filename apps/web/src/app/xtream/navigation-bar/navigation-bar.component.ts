@@ -74,6 +74,7 @@ export class NavigationBarComponent implements OnChanges {
     @Output() searchTextChanged = new EventEmitter<string>();
     @Output() addToFavoritesClicked = new EventEmitter<any>();
     @Output() removeFromFavoritesClicked = new EventEmitter<number>();
+    @Output() categoryVisibilityClicked = new EventEmitter<void>();
 
     ContentTypeEnum = ContentType;
     dialog = inject(MatDialog);
@@ -192,5 +193,9 @@ export class NavigationBarComponent implements OnChanges {
             height: '90%',
             data: { isDialog: true },
         });
+    }
+
+    openCategoryVisibilityDialog(): void {
+        this.categoryVisibilityClicked.emit();
     }
 }

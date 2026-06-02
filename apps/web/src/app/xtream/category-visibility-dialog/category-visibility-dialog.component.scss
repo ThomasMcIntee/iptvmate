@@ -1,0 +1,71 @@
+.mat-mdc-dialog-content {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    overflow: hidden;
+}
+
+.header-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.selection-info {
+    font-size: 13px;
+}
+
+.bulk-actions {
+    display: flex;
+    gap: 8px;
+
+    button {
+        font-size: 12px;
+    }
+}
+
+.search-field {
+    width: 100%;
+}
+
+.categories-list {
+    height: 420px;
+    overflow-y: auto;
+    border: 1px solid var(--mat-sys-outline-variant);
+    border-radius: 8px;
+}
+
+.category-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 2px 10px;
+    cursor: pointer;
+    transition: background-color 0.12s ease;
+
+    &:hover {
+        background-color: var(--mat-sys-surface-container);
+    }
+
+    &:not(:last-child) {
+        border-bottom: 1px solid var(--mat-sys-surface-container);
+    }
+}
+
+.category-name {
+    flex: 1;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 13px;
+}
+
+.empty-message {
+    padding: 24px;
+    text-align: center;
+    color: var(--mat-sys-on-surface-variant);
+    font-size: 13px;
+}

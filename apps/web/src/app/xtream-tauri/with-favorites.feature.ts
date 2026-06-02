@@ -39,7 +39,10 @@ export const withFavorites = function () {
                         return false;
                     }
 
-                    const currentStatus = store.isFavorite();
+                    const currentStatus = await favoritesService.isFavorite(
+                        content.id,
+                        playlistId
+                    );
 
                     if (currentStatus) {
                         // Remove from favorites
