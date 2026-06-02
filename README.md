@@ -1,9 +1,8 @@
 # IPTVmate - IPTV Player Application
 
 ![IPTVmate icon](https://raw.githubusercontent.com/ThomasMcIntee/iptvmate/electron/src/assets/icons/favicon.256x256.png "IPTV player application")
-
-[![Release](https://img.shields.io/github/release/thomasmcintee/iptvmate.svg?style=for-the-badge&logo=github)](https://github.com/thomasmcintee/iptvmate/releases)
-[![Pre-release](https://img.shields.io/github/v/release/thomasmcintee/iptvmate?include_prereleases&label=pre-release&logo=github&style=for-the-badge)](https://github.com/thomasmcintee/iptvmate/releases)
+[![Release](https://img.shields.io/github/release/thomasmcintee/iptvmate.svg?style=for-the-badge&logo=github)](https://github.com/thomasmcintee/iptvmate-0.21.1/releases/)
+[![Pre-release](https://img.shields.io/github/v/release/thomasmcintee/iptvmate?include_prereleases&label=pre-release&logo=github&style=for-the-badge)](https://github.com/thomasmcintee/iptvmate-0.21.1/releases/)
 ![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/thomasmcintee/iptvmate/build-and-test.yaml?style=for-the-badge&logo=github)
 [![Releases](https://img.shields.io/github/downloads/thomasmcintee/iptvmate/total?style=for-the-badge&logo=github)](https://github.com/thomasmcintee/iptvmate/releases)
 [![Codecov](https://img.shields.io/codecov/c/github/thomasmcintee/iptvmate?style=for-the-badge)](https://codecov.io/gh/thomasmcintee/iptvmate)
