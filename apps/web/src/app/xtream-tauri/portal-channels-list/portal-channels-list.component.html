@@ -1,12 +1,14 @@
 @if (showSearch()) {
     <div class="search-panel">
         <mat-form-field class="search-bar" subscriptSizing="dynamic">
+            <mat-label>{{ 'CHANNELS.SEARCH_CHANNEL' | translate }}</mat-label>
             <mat-icon matPrefix>search</mat-icon>
             <input
                 matInput
                 spellcheck="false"
                 type="search"
-                [placeholder]="'CHANNELS.SEARCH_CHANNEL' | translate"
+                placeholder="Search channels"
+                title="Search channels"
                 [ngModel]="searchString()"
                 (ngModelChange)="searchString.set($event)"
             />
@@ -27,7 +29,7 @@
             "
             class="channel-item"
             [class.active]="xtreamStore.selectedItem()?.xtream_id === item.xtream_id"
-            (click)="playClicked.emit(item)"
+            (click)="onChannelClick($event, item)"
         >
             <img
                 class="stream-icon"
@@ -76,11 +78,23 @@
             </div>
             <button
                 class="favorite-btn"
-                (click)="toggleFavorite($event, item)"
+                type="button"
+                (mousedown)="$event.stopPropagation()"
+                (click)="onFavoriteClick($event, item)"
+                [title]="
+                    favorites.get(item.xtream_id)
+                        ? 'Remove from favorites'
+                        : 'Add to favorites'
+                "
+                [attr.aria-label]="
+                    favorites.get(item.xtream_id)
+                        ? 'Remove from favorites'
+                        : 'Add to favorites'
+                "
             >
-                <mat-icon>
-                    {{ favorites.get(item.xtream_id) ? 'star' : 'star_outline' }}
-                </mat-icon>
+                <span class="favorite-btn__star">
+                    {{ favorites.get(item.xtream_id) ? '★' : '☆' }}
+                </span>
             </button>
         </div>
     </cdk-virtual-scroll-viewport>

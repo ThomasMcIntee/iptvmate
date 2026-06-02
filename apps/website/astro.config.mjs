@@ -9,5 +9,5 @@ export default defineConfig({
   site: 'https://thomasmcintee.github.io',
   base: '/iptvmate',
   outDir: '../../dist/apps/website',
-  integrations: [tailwind(), sitemap(), mdx()],
+  integrations: [tailwind({ configFile: './apps/website/tailwind.config.mjs' }), sitemap(), mdx()],
 });

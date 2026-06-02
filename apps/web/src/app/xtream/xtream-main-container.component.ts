@@ -55,6 +55,10 @@ import { ContentTypeNavigationItem } from './content-type-navigation-item.interf
 import { ContentType } from './content-type.enum';
 import { NavigationBarComponent } from './navigation-bar/navigation-bar.component';
 import { PortalStore } from './portal.store';
+import {
+    CategoryVisibilityDialogComponent,
+    CategoryVisibilityItem,
+} from './category-visibility-dialog/category-visibility-dialog.component';
 import { SerialDetailsComponent } from './serial-details/serial-details.component';
 import { VodDetailsComponent } from './vod-details/vod-details.component';
 
@@ -614,6 +618,70 @@ export class XtreamMainContainerComponent implements OnInit, OnDestroy {
     setSearchPhrase(searchPhrase: string) {
         this.portalStore.setSearchPhrase(searchPhrase);
         this.searchPhrase = searchPhrase;
+    }
+
+    openCategoryVisibilityDialog(): void {
+        const categories = this.items
+            .map((item: any) => ({
+                id: this.getCategoryItemId(item),
+                name:
+                    (item.category_name as string) ||
+                    (item.name as string) ||
+                    'No category name',
+            }))
+            .filter((item) => item.id.length > 0) as CategoryVisibilityItem[];
+
+        if (categories.length === 0) {
+            this.snackBar.open('No categories available to manage', null, {
+                duration: 2000,
+            });
+            return;
+        }
+
+        const hiddenIds =
+            this.portalStore.hiddenCategoryIdsByType()[
+                this.selectedContentType
+            ] ?? [];
+
+        this.dialog
+            .open(CategoryVisibilityDialogComponent, {
+                width: '560px',
+                maxWidth: '90vw',
+                data: {
+                    categories,
+                    hiddenIds,
+                },
+            })
+            .afterClosed()
+            .subscribe((nextHiddenIds: string[] | undefined) => {
+                if (!Array.isArray(nextHiddenIds)) {
+                    return;
+                }
+
+                this.portalStore.setHiddenCategoryIdsForType({
+                    contentType: this.selectedContentType,
+                    hiddenIds: nextHiddenIds,
+                });
+            });
+    }
+
+    getVisibleCategoryItems(): any[] {
+        const hiddenIds =
+            this.portalStore.hiddenCategoryIdsByType()[
+                this.selectedContentType
+            ] ?? [];
+
+        if (hiddenIds.length === 0) {
+            return this.items;
+        }
+
+        return this.items.filter(
+            (item: any) => !hiddenIds.includes(this.getCategoryItemId(item))
+        );
+    }
+
+    private getCategoryItemId(item: any): string {
+        return String(item?.category_id ?? item?.id ?? '');
     }
 
     addToFavorites(item: any) {

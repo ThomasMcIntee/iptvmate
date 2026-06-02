@@ -53,7 +53,15 @@ export class ArtPlayerComponent implements OnInit, OnDestroy, OnChanges {
     private playbackCandidateIndex = 0;
     private startupTimeoutId: ReturnType<typeof setTimeout> | null = null;
     private hasStartedPlayback = false;
-    private isLiveSource = false;
+    private currentPlaybackUrl: string | null = null;
+    private silenceCheckAttemptedFor: string | null = null;
+    private fullTranscodeAttemptedFor: string | null = null;
+    private static readonly MAX_AUDIO_TRACK_INDEX = 4;
+    private audioContext: AudioContext | null = null;
+    private audioAnalyser: AnalyserNode | null = null;
+    private audioMediaSource: MediaElementAudioSourceNode | null = null;
+    private silenceCheckTimer: ReturnType<typeof setTimeout> | null = null;
+    private silenceSamples: number[] = [];
 
     private readonly elementRef = inject(ElementRef);
     private static readonly PWA_PROXY_BASE = 'http://localhost:3000';
@@ -75,6 +83,7 @@ export class ArtPlayerComponent implements OnInit, OnDestroy, OnChanges {
 
     private destroyPlayer(): void {
         this.clearStartupTimeout();
+        this.teardownAudioGraph();
         if (this.hls) {
             this.hls.destroy();
             this.hls = null;
@@ -95,7 +104,11 @@ export class ArtPlayerComponent implements OnInit, OnDestroy, OnChanges {
         this.playbackCandidates = this.getPlaybackCandidates(this.channel.url);
         this.playbackCandidateIndex = 0;
         this.hasStartedPlayback = false;
+        this.silenceCheckAttemptedFor = null;
+        this.fullTranscodeAttemptedFor = null;
         const initialUrl = this.playbackCandidates[0] ?? this.channel.url;
+        const initialPlaybackUrl = initialUrl + (this.channel.epgParams || '');
+        this.currentPlaybackUrl = initialPlaybackUrl;
 
         const effectiveUrl = this.getEffectiveSourceUrl(initialUrl);
         const lowerUrl = effectiveUrl.toLowerCase();
@@ -104,11 +117,10 @@ export class ArtPlayerComponent implements OnInit, OnDestroy, OnChanges {
             extension === 'm3u8' ||
             extension === 'ts' ||
             lowerUrl.includes('/live/');
-        this.isLiveSource = isLive;
 
         this.player = new Artplayer({
             container: el,
-            url: initialUrl + (this.channel.epgParams || ''),
+            url: initialPlaybackUrl,
             volume: this.volume,
             isLive: isLive,
             autoplay: true,
@@ -141,6 +153,24 @@ export class ArtPlayerComponent implements OnInit, OnDestroy, OnChanges {
                 : {}),
             customType: {
                 m3u8: (video: HTMLVideoElement, url: string) => {
+                    this.currentPlaybackUrl = url;
+                    video.crossOrigin = 'anonymous';
+                    // Proxy transcode streams are fragmented MP4, not HLS manifests.
+                    if (url.includes('transcode=audio') || url.includes('transcode=1')) {
+                        if (this.hls) {
+                            this.hls.destroy();
+                            this.hls = null;
+                        }
+                        video.src = url;
+                        void video.play().then(() => {
+                            this.markPlaybackStarted();
+                            this.startSilenceCheck();
+                        }).catch(() => {
+                            // Browser autoplay policies may block this; user interaction can still start playback.
+                        });
+                        return;
+                    }
+
                     if (Hls.isSupported()) {
                         if (this.hls) {
                             this.hls.destroy();
@@ -154,6 +184,7 @@ export class ArtPlayerComponent implements OnInit, OnDestroy, OnChanges {
                         this.hls.on(Hls.Events.MANIFEST_PARSED, () => {
                             void video.play().then(() => {
                                 this.markPlaybackStarted();
+                                this.startSilenceCheck();
                             }).catch(() => {
                                 // Browser autoplay policies may block this; user interaction can still start playback.
                             });
@@ -177,6 +208,7 @@ export class ArtPlayerComponent implements OnInit, OnDestroy, OnChanges {
                                 this.playbackError.emit();
                                 return;
                             }
+                            this.currentPlaybackUrl = nextUrl;
                             this.hls.loadSource(nextUrl);
                         });
                     } else if (
@@ -185,6 +217,7 @@ export class ArtPlayerComponent implements OnInit, OnDestroy, OnChanges {
                         video.src = url;
                         void video.play().then(() => {
                             this.markPlaybackStarted();
+                            this.startSilenceCheck();
                         }).catch(() => {
                             // Browser autoplay policies may block this; user interaction can still start playback.
                         });
@@ -193,6 +226,7 @@ export class ArtPlayerComponent implements OnInit, OnDestroy, OnChanges {
                     }
                 },
                 mkv: function (video: HTMLVideoElement, url: string) {
+                    video.crossOrigin = 'anonymous';
                     video.src = url;
                     // Add error handling
                     video.onerror = () => {
@@ -205,9 +239,9 @@ export class ArtPlayerComponent implements OnInit, OnDestroy, OnChanges {
         });
 
         this.player.on('ready', () => {
-            if (this.isLiveSource) {
-                this.startStartupTimeout();
-            }
+            // Use startup timeout for both live and VOD so stalled movie/series
+            // playback can trigger higher-level fallback instead of hanging.
+            this.startStartupTimeout();
             if (this.startTime > 0) {
                 this.player.seek = this.startTime;
             }
@@ -236,6 +270,12 @@ export class ArtPlayerComponent implements OnInit, OnDestroy, OnChanges {
 
         this.player.on('video:playing', () => {
             this.markPlaybackStarted();
+            this.startSilenceCheck();
+        });
+
+        this.player.on('video:error', () => {
+            this.clearStartupTimeout();
+            this.playbackError.emit();
         });
     }
 
@@ -251,6 +291,230 @@ export class ArtPlayerComponent implements OnInit, OnDestroy, OnChanges {
     private markPlaybackStarted(): void {
         this.hasStartedPlayback = true;
         this.clearStartupTimeout();
+    }
+
+    private startSilenceCheck(): void {
+        const video = this.player?.video as HTMLVideoElement | undefined;
+        if (!video) return;
+        const sourceUrl = this.currentPlaybackUrl ?? video.currentSrc;
+        if (!sourceUrl) return;
+        if (!sourceUrl.includes('/stream?url=')) return;
+        if (!this.isMovieOrSeriesSource(sourceUrl)) return;
+        if (this.silenceCheckAttemptedFor === sourceUrl) return;
+
+        this.stopSilenceCheck();
+        this.silenceCheckAttemptedFor = sourceUrl;
+
+        try {
+            const Ctor =
+                (window as unknown as { AudioContext?: typeof AudioContext })
+                    .AudioContext ??
+                (window as unknown as { webkitAudioContext?: typeof AudioContext })
+                    .webkitAudioContext;
+            if (!Ctor) return;
+
+            const ctx = new Ctor();
+            const mediaSource = ctx.createMediaElementSource(video);
+            const analyser = ctx.createAnalyser();
+            analyser.fftSize = 256;
+            mediaSource.connect(analyser);
+            analyser.connect(ctx.destination);
+
+            this.audioContext = ctx;
+            this.audioMediaSource = mediaSource;
+            this.audioAnalyser = analyser;
+            this.silenceSamples = [];
+
+            const buffer = new Uint8Array(analyser.frequencyBinCount);
+            const sample = () => {
+                if (!this.audioAnalyser) return;
+                this.audioAnalyser.getByteTimeDomainData(buffer);
+                let peak = 0;
+                for (let i = 0; i < buffer.length; i++) {
+                    const delta = Math.abs(buffer[i] - 128);
+                    if (delta > peak) peak = delta;
+                }
+                this.silenceSamples.push(peak);
+
+                if (this.silenceSamples.length >= 16) {
+                    const maxPeak = Math.max(...this.silenceSamples);
+                    this.stopSilenceCheck();
+                    if (maxPeak <= 2) {
+                        void this.retryAfterSilentPlayback(sourceUrl);
+                    }
+                    return;
+                }
+
+                this.silenceCheckTimer = setTimeout(sample, 250);
+            };
+
+            this.silenceCheckTimer = setTimeout(sample, 750);
+        } catch {
+            this.stopSilenceCheck();
+        }
+    }
+
+    private stopSilenceCheck(): void {
+        if (this.silenceCheckTimer) {
+            clearTimeout(this.silenceCheckTimer);
+            this.silenceCheckTimer = null;
+        }
+        this.silenceSamples = [];
+    }
+
+    private teardownAudioGraph(): void {
+        this.stopSilenceCheck();
+        try {
+            this.audioMediaSource?.disconnect();
+        } catch {
+            // ignore
+        }
+        try {
+            this.audioAnalyser?.disconnect();
+        } catch {
+            // ignore
+        }
+        if (this.audioContext) {
+            void this.audioContext.close().catch(() => undefined);
+        }
+        this.audioMediaSource = null;
+        this.audioAnalyser = null;
+        this.audioContext = null;
+    }
+
+    private async retryAfterSilentPlayback(sourceUrl: string): Promise<void> {
+        if (sourceUrl.includes('transcode=1')) {
+            const nextFullTrackUrl = this.withNextAudioTrack(sourceUrl);
+            if (nextFullTrackUrl) {
+                this.switchToTranscodedUrl(nextFullTrackUrl);
+                return;
+            }
+            this.playbackError.emit();
+            return;
+        }
+
+        if (sourceUrl.includes('transcode=audio')) {
+            const nextAudioTrackUrl = this.withNextAudioTrack(sourceUrl);
+            if (nextAudioTrackUrl) {
+                this.switchToTranscodedUrl(nextAudioTrackUrl);
+                return;
+            }
+
+            if (this.fullTranscodeAttemptedFor === sourceUrl) {
+                this.playbackError.emit();
+                return;
+            }
+            const fullUrl = this.toFullTranscodeUrl(sourceUrl);
+            if (!fullUrl) {
+                this.playbackError.emit();
+                return;
+            }
+            this.fullTranscodeAttemptedFor = sourceUrl;
+            this.switchToTranscodedUrl(fullUrl);
+            return;
+        }
+
+        const audioUrl = this.toAudioTranscodeUrl(sourceUrl);
+        if (!audioUrl) return;
+        this.switchToTranscodedUrl(audioUrl);
+    }
+
+    private switchToTranscodedUrl(url: string): void {
+        try {
+            this.currentPlaybackUrl = url;
+            this.hasStartedPlayback = false;
+            this.startStartupTimeout();
+
+            if (this.hls) {
+                this.hls.destroy();
+                this.hls = null;
+            }
+
+            this.player.url = url;
+        } catch {
+            // let existing player fallback/error flow handle failures
+        }
+    }
+
+    private toAudioTranscodeUrl(url: string): string | null {
+        try {
+            const parsed = new URL(url, window.location.origin);
+            if (!parsed.pathname.endsWith('/stream')) {
+                return null;
+            }
+
+            const nestedUrl = parsed.searchParams.get('url');
+            if (!nestedUrl) {
+                return null;
+            }
+
+            if (!this.isMovieOrSeriesSource(url)) {
+                return null;
+            }
+
+            if (parsed.searchParams.get('transcode') === 'audio') {
+                return null;
+            }
+
+            parsed.searchParams.set('transcode', 'audio');
+            parsed.searchParams.set('aidx', '0');
+            return parsed.toString();
+        } catch {
+            return null;
+        }
+    }
+
+    private toFullTranscodeUrl(url: string): string | null {
+        try {
+            const parsed = new URL(url, window.location.origin);
+            if (!parsed.pathname.endsWith('/stream')) {
+                return null;
+            }
+
+            const nestedUrl = parsed.searchParams.get('url');
+            if (!nestedUrl) {
+                return null;
+            }
+
+            if (!this.isMovieOrSeriesSource(url)) {
+                return null;
+            }
+
+            parsed.searchParams.set('transcode', '1');
+            if (!parsed.searchParams.get('aidx')) {
+                parsed.searchParams.set('aidx', '0');
+            }
+            return parsed.toString();
+        } catch {
+            return null;
+        }
+    }
+
+    private withNextAudioTrack(url: string): string | null {
+        try {
+            const parsed = new URL(url, window.location.origin);
+            const mode = parsed.searchParams.get('transcode');
+            if (mode !== 'audio' && mode !== '1') {
+                return null;
+            }
+
+            const current = Number.parseInt(parsed.searchParams.get('aidx') ?? '0', 10);
+            const currentSafe = Number.isInteger(current) && current >= 0 ? current : 0;
+            const next = currentSafe + 1;
+            if (next > ArtPlayerComponent.MAX_AUDIO_TRACK_INDEX) {
+                return null;
+            }
+
+            parsed.searchParams.set('aidx', String(next));
+            return parsed.toString();
+        } catch {
+            return null;
+        }
+    }
+
+    private isMovieOrSeriesSource(url: string): boolean {
+        const effective = this.getEffectiveSourceUrl(url).toLowerCase();
+        return effective.includes('/movie/') || effective.includes('/series/');
     }
 
     private clearStartupTimeout(): void {
@@ -275,6 +539,10 @@ export class ArtPlayerComponent implements OnInit, OnDestroy, OnChanges {
     }
 
     private getVideoType(url: string): string {
+        if (url.includes('transcode=audio') || url.includes('transcode=1')) {
+            return 'mp4';
+        }
+
         const effectiveUrl = this.getEffectiveSourceUrl(url);
         const extension = getExtensionFromUrl(effectiveUrl)?.toLowerCase();
         switch (extension) {

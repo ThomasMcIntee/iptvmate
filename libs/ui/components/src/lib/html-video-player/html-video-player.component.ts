@@ -260,8 +260,9 @@ export class HtmlVideoPlayerComponent implements OnInit, OnChanges, OnDestroy {
 
         if (channel.url) {
             const url = channel.url + (channel.epgParams ?? '');
-            this.currentSourceUrl = url;
-            const effectiveSourceUrl = this.getEffectiveSourceUrl(channel.url);
+            const playbackUrl = this.preferInitialAudioTranscode(url);
+            this.currentSourceUrl = playbackUrl;
+            const effectiveSourceUrl = this.getEffectiveSourceUrl(playbackUrl);
             const extension = getExtensionFromUrl(effectiveSourceUrl)?.toLowerCase();
 
             // Set user agent if specified on channel
@@ -275,7 +276,7 @@ export class HtmlVideoPlayerComponent implements OnInit, OnChanges, OnDestroy {
             if (extension === 'm3u8' && Hls && Hls.isSupported()) {
                 this.hls = new Hls();
                 this.hls.attachMedia(this.videoPlayer.nativeElement);
-                this.hls.loadSource(url);
+                this.hls.loadSource(playbackUrl);
                 // Wait for manifest to be parsed before attempting playback;
                 // calling play() before HLS.js attaches a MediaSource is a no-op
                 // and prevents autoplay from working reliably.
@@ -286,13 +287,13 @@ export class HtmlVideoPlayerComponent implements OnInit, OnChanges, OnDestroy {
                     this.handleHlsError(data);
                 });
             } else if (extension === 'm3u8') {
-                this.playNative(url, 'application/x-mpegURL');
+                this.playNative(playbackUrl, 'application/x-mpegURL');
             } else if (extension === 'ts') {
-                this.playNative(url, 'video/mp2t');
+                this.playNative(playbackUrl, 'video/mp2t');
             } else if (extension === 'mp4') {
-                this.playNative(url, 'video/mp4');
+                this.playNative(playbackUrl, 'video/mp4');
             } else {
-                this.playNative(url);
+                this.playNative(playbackUrl);
             }
             // Side-load external subtitle if provided
             this.applySubtitleTrack();
@@ -304,6 +305,51 @@ export class HtmlVideoPlayerComponent implements OnInit, OnChanges, OnDestroy {
             const parsed = new URL(url);
             const nestedUrl = parsed.searchParams.get('url');
             return nestedUrl ? decodeURIComponent(nestedUrl) : url;
+        } catch {
+            return url;
+        }
+    }
+
+    private preferInitialAudioTranscode(url: string): string {
+        if (!this.electronApi?.getStreamProxyPort) {
+            return url;
+        }
+
+        try {
+            const parsed = new URL(url);
+            if (!parsed.pathname.endsWith('/stream')) {
+                return url;
+            }
+
+            const nestedUrl = parsed.searchParams.get('url');
+            if (!nestedUrl) {
+                return url;
+            }
+
+            const transcodeMode = parsed.searchParams.get('transcode');
+            if (transcodeMode === 'audio') {
+                return url;
+            }
+
+            const nested = decodeURIComponent(nestedUrl).toLowerCase();
+            const isLikelyMovieOrSeriesPath =
+                nested.includes('/movie/') || nested.includes('/series/');
+            const isLikelyHls = /\.m3u8(\?|$)/i.test(nested);
+            const isLikelyDirectPlayableContainer =
+                /\.(mp4|m4v|webm)(\?|$)/i.test(nested);
+            const prefersAudioFirst =
+                /\.(mkv|avi|mov)(\?|$)/i.test(nested) ||
+                (
+                    isLikelyMovieOrSeriesPath &&
+                    !isLikelyHls &&
+                    !isLikelyDirectPlayableContainer
+                );
+            if (!prefersAudioFirst) {
+                return url;
+            }
+
+            parsed.searchParams.set('transcode', 'audio');
+            return parsed.toString();
         } catch {
             return url;
         }
@@ -338,6 +384,7 @@ export class HtmlVideoPlayerComponent implements OnInit, OnChanges, OnDestroy {
 
     private playNative(url: string, type?: string): void {
         const videoElement = this.videoPlayer.nativeElement;
+        videoElement.crossOrigin = 'anonymous';
         if (type) {
             videoElement.setAttribute('type', type);
         } else {
@@ -572,7 +619,7 @@ export class HtmlVideoPlayerComponent implements OnInit, OnChanges, OnDestroy {
             this.hls = null;
         }
         this.resetVideoElement();
-        // Transcoded output is fragmented MP4 — play it natively.
+        // Both audio and full fallback streams are fragmented MP4.
         this.playNative(transcodeUrl, 'video/mp4');
         return true;
     }
@@ -594,11 +641,8 @@ export class HtmlVideoPlayerComponent implements OnInit, OnChanges, OnDestroy {
             u.pathname = u.pathname
                 .replace(/\/stream$/, '/transcode')
                 .replace(/\/transcode$/, '/transcode');
-            if (mode === 'full') {
-                u.searchParams.set('reencode', 'full');
-            } else {
-                u.searchParams.delete('reencode');
-            }
+            u.searchParams.delete('reencode');
+            u.searchParams.set('transcode', mode === 'full' ? '1' : 'audio');
             return u.toString();
         } catch {
             return null;
@@ -628,11 +672,9 @@ export class HtmlVideoPlayerComponent implements OnInit, OnChanges, OnDestroy {
         if (!sourceUrl) return;
         // Already retried (or actively checking) this source — bail.
         if (this.silenceCheckAttemptedFor === sourceUrl) return;
-        // Already routing through an audio-only transcode — no further recovery.
-        if (
-            sourceUrl.includes('transcode=audio') ||
-            sourceUrl.includes('transcode=1')
-        ) {
+        // Already routing through audio-only transcode — no further recovery.
+        // Keep full-transcode eligible for one silence-based retry to audio-only.
+        if (sourceUrl.includes('transcode=audio')) {
             return;
         }
         // Only available in Electron where the proxy can do the transcoding.
@@ -678,7 +720,8 @@ export class HtmlVideoPlayerComponent implements OnInit, OnChanges, OnDestroy {
                 if (this.silenceSamples.length >= 16) {
                     const maxPeak = Math.max(...this.silenceSamples);
                     this.stopSilenceCheck();
-                    if (maxPeak === 0) {
+                    // Some silent streams still report tiny waveform jitter (1-2).
+                    if (maxPeak <= 2) {
                         console.warn(
                             '[HtmlVideoPlayer] No audio detected for 4s — retrying with audio-only transcode'
                         );
@@ -755,7 +798,7 @@ export class HtmlVideoPlayerComponent implements OnInit, OnChanges, OnDestroy {
             }
             this.resetVideoElement();
             this.currentSourceUrl = proxyUrl;
-            this.playNative(proxyUrl, 'video/mp2t');
+            this.playNative(proxyUrl, 'video/mp4');
         } catch (e) {
             console.warn(
                 '[HtmlVideoPlayer] Failed to retry with audio transcode:',

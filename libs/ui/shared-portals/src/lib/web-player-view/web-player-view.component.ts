@@ -160,9 +160,25 @@ export class WebPlayerViewComponent {
 
     onArtPlayerPlaybackError(): void {
         const source = this.streamUrl()?.toLowerCase() ?? '';
+        const isMovieOrSeries =
+            source.includes('/movie/') || source.includes('/series/');
+
+        if (isMovieOrSeries) {
+            // ArtPlayer can fail on some VOD/series codecs/containers where
+            // HTML5 path has more robust proxy+transcode recovery.
+            this.forceHtml5Fallback = true;
+            this.forceVideoJsFallback = false;
+            return;
+        }
+
         if (source.includes('/live/')) {
             this.forceVideoJsFallback = true;
+            return;
         }
+
+        // Unknown non-live source: prefer HTML5 fallback over a dead ArtPlayer state.
+        this.forceHtml5Fallback = true;
+        this.forceVideoJsFallback = false;
     }
 
     private getAlternateLiveUrl(streamUrl: string): string | null {
@@ -237,11 +253,13 @@ export class WebPlayerViewComponent {
             effectiveSource.includes('/live/play/');
         const isProxied = sourceHint.includes('/stream?url=');
         const isTranscodedProxy =
-            isProxied && sourceHint.includes('transcode=1');
+            isProxied &&
+            (sourceHint.includes('transcode=1') ||
+                sourceHint.includes('transcode=audio'));
 
         if (isTranscodedProxy) {
-            // Force TS MIME so Video.js engages VHS for proxied transcode streams.
-            return { src: streamUrl, type: 'video/mp2t' };
+            // Proxy transcoded streams are fragmented MP4.
+            return { src: streamUrl, type: 'video/mp4' };
         }
 
         // Only force MIME when confidently known. For unknown live URLs,
@@ -352,7 +370,11 @@ export class WebPlayerViewComponent {
             return streamUrl;
         }
 
-        const forceTranscode = false;
+        // ArtPlayer is the most sensitive path for VOD audio codec/container
+        // combinations. Start movies/series with full transcode to avoid
+        // silent playback loops and late retries.
+        const forceTranscode =
+            this.player === VideoPlayer.ArtPlayer && isMovieOrSeries;
 
         const electronApi = (globalThis as {
             electron?: { getStreamProxyPort?: () => Promise<number> };

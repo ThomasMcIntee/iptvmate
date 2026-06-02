@@ -1,8 +1,11 @@
+import { fileURLToPath } from 'node:url';
 import typography from '@tailwindcss/typography';
+
+const configDir = fileURLToPath(new URL('./', import.meta.url)).replace(/\\/g, '/');
 
 /** @type {import('tailwindcss').Config} */
 export default {
-  content: ['./src/**/*.{astro,html,js,jsx,md,mdx,ts,tsx}'],
+  content: [`${configDir}src/**/*.{astro,html,js,jsx,md,mdx,ts,tsx}`],
   darkMode: 'class',
   theme: {
     extend: {

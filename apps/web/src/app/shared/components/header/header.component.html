@@ -1,4 +1,12 @@
 <div class="modern-header">
+    @if (showBrowserWindowControls) {
+        <div class="window-controls-faux" aria-hidden="true">
+            <span class="dot close"></span>
+            <span class="dot minimize"></span>
+            <span class="dot maximize"></span>
+        </div>
+    }
+
     <div class="brand-block">
         <div class="logo-pulse">
             <img src="./assets/icons/icon-tv-256.png" alt="iptvmate logo" />
@@ -103,7 +111,7 @@
                 </button>
                 <app-filter-sort-menu #desktopFilterMenu [menuTrigger]="desktopFilterTrigger" />
             }
-            @if (isDesktop) {
+            @if (isDesktopShell) {
                 <button
                     mat-icon-button
                     (click)="openSettings()"
@@ -254,7 +262,7 @@
                     <mat-icon>settings</mat-icon>
                     <span>{{ 'MENU.SETTINGS' | translate }}</span>
                 </button>
-                @if (!isDesktop) {
+                @if (!isDesktopShell) {
                     <mat-divider />
                     <button
                         mat-menu-item

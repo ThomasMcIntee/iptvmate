@@ -32,6 +32,9 @@ export class AppComponent implements OnInit {
             window.electron && navigator.platform.toLowerCase().includes('mac')
         );
     }
+    @HostBinding('class.browser-desktop-shell') get isBrowserDesktopShell() {
+        return !window.electron && window.innerWidth > 768;
+    }
     private actions$ = inject(Actions);
     private dataService = inject(DataService);
     private dialog = inject(MatDialog);

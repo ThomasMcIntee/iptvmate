@@ -1,0 +1,61 @@
+<h2 mat-dialog-title>Category Visibility</h2>
+
+<mat-dialog-content>
+    <div class="header-actions">
+        <div class="selection-info">
+            Visible: <strong>{{ selectedCount() }}</strong> / {{ totalCount() }}
+        </div>
+        <div class="bulk-actions">
+            <button mat-stroked-button (click)="selectAll()" [disabled]="allSelected()">
+                <mat-icon>check_box</mat-icon>
+                Show all
+            </button>
+            <button mat-stroked-button (click)="deselectAll()" [disabled]="selectedCount() === 0">
+                <mat-icon>check_box_outline_blank</mat-icon>
+                Hide all
+            </button>
+        </div>
+    </div>
+
+    <mat-form-field appearance="outline" class="search-field" subscriptSizing="dynamic">
+        <mat-icon matPrefix>search</mat-icon>
+        <input
+            matInput
+            [ngModel]="searchTerm()"
+            (ngModelChange)="searchTerm.set($event)"
+            placeholder="Search categories"
+            title="Search categories"
+        />
+        @if (searchTerm()) {
+            <button matSuffix mat-icon-button (click)="clearSearch()">
+                <mat-icon>close</mat-icon>
+            </button>
+        }
+    </mat-form-field>
+
+    <div class="categories-list">
+        @for (category of filteredCategories(); track category.id) {
+            <div class="category-item" (click)="toggleCategory(category)">
+                <mat-checkbox
+                    [checked]="category.selected"
+                    (click)="$event.stopPropagation()"
+                    (change)="toggleCategory(category)"
+                ></mat-checkbox>
+                <span class="category-name">{{ category.name }}</span>
+            </div>
+        } @empty {
+            <div class="empty-message">
+                @if (searchTerm()) {
+                    No categories match your search.
+                } @else {
+                    No categories available.
+                }
+            </div>
+        }
+    </div>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+    <button mat-button (click)="cancel()">Cancel</button>
+    <button mat-flat-button color="primary" (click)="save()">Save</button>
+</mat-dialog-actions>

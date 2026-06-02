@@ -2,6 +2,7 @@
     "recommendations": [
         "ms-playwright.playwright",
         "esbenp.prettier-vscode",
-        "ms-python.vscode-python-envs"
+        "ms-python.vscode-python-envs",
+        "ms-vscode.cpptools"
     ]
 }
