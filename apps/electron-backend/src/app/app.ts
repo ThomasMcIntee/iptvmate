@@ -80,6 +80,128 @@ export default class App {
         }
     }
 
+    private static focusOrCreateMainWindow(): void {
+        const mainWindow = App.mainWindow;
+        if (mainWindow && !mainWindow.isDestroyed()) {
+            if (mainWindow.isMinimized()) {
+                mainWindow.restore();
+            }
+            mainWindow.show();
+            mainWindow.focus();
+            return;
+        }
+
+        App.onReady();
+    }
+
+    private static buildApplicationMenu(): Electron.Menu {
+        const template: Electron.MenuItemConstructorOptions[] = [
+            {
+                label: 'File',
+                submenu: [{ role: 'quit' }],
+            },
+            {
+                label: 'Edit',
+                submenu: [
+                    { role: 'undo' },
+                    { role: 'redo' },
+                    { type: 'separator' },
+                    { role: 'cut' },
+                    { role: 'copy' },
+                    { role: 'paste' },
+                    { role: 'selectAll' },
+                ],
+            },
+            {
+                label: 'View',
+                submenu: [
+                    { role: 'reload' },
+                    { role: 'forceReload' },
+                    { role: 'toggleDevTools' },
+                    { type: 'separator' },
+                    { role: 'resetZoom' },
+                    { role: 'zoomIn' },
+                    { role: 'zoomOut' },
+                    { type: 'separator' },
+                    { role: 'togglefullscreen' },
+                ],
+            },
+            {
+                label: 'Window',
+                submenu: [{ role: 'minimize' }, { role: 'close' }],
+            },
+            {
+                label: 'Help',
+                submenu: [
+                    {
+                        label: 'Website',
+                        click: () => {
+                            void shell.openExternal('https://thomasmcintee.github.io/iptvmate/');
+                        },
+                    },
+                    {
+                        label: 'Report Issue',
+                        click: () => {
+                            void shell.openExternal('https://github.com/ThomasMcIntee/iptvmate/issues');
+                        },
+                    },
+                ],
+            },
+        ];
+
+        if (process.platform === 'darwin') {
+            template.unshift({
+                label: app.name,
+                submenu: [
+                    { role: 'about' },
+                    { type: 'separator' },
+                    { role: 'services' },
+                    { type: 'separator' },
+                    { role: 'hide' },
+                    { role: 'hideOthers' },
+                    { role: 'unhide' },
+                    { type: 'separator' },
+                    { role: 'quit' },
+                ],
+            });
+        } else {
+            template.unshift({
+                label: 'IPTVmate',
+                submenu: [
+                    {
+                        label: 'Show Main Window',
+                        click: () => {
+                            App.focusOrCreateMainWindow();
+                        },
+                    },
+                    { type: 'separator' },
+                    {
+                        label: 'About IPTVmate',
+                        role: 'about',
+                    },
+                    { type: 'separator' },
+                    { role: 'quit' },
+                ],
+            });
+        }
+
+        return Menu.buildFromTemplate(template);
+    }
+
+    private static applyApplicationMenu(mainWindow: BrowserWindow): void {
+        const appMenu = App.buildApplicationMenu();
+        if (process.platform === 'darwin') {
+            Menu.setApplicationMenu(appMenu);
+            return;
+        }
+
+        // Windows: hide native top menu bar and rely on in-app navigation.
+        Menu.setApplicationMenu(null);
+        mainWindow.setMenuBarVisibility(false);
+        mainWindow.setAutoHideMenuBar(true);
+        mainWindow.setMenu(null);
+    }
+
     private static initMainWindow() {
         if (App.mainWindow && !App.mainWindow.isDestroyed()) {
             return;
@@ -96,6 +218,7 @@ export default class App {
         App.mainWindow = new BrowserWindow({
             title: 'iptvmate',
             show: false,
+            autoHideMenuBar: true,
             ...restSavedWindowBounds,
             webPreferences: {
                 contextIsolation: true,
@@ -120,7 +243,7 @@ export default class App {
             return;
         }
 
-        mainWindow.setMenu(null);
+        App.applyApplicationMenu(mainWindow);
         if (!savedWindowBounds) {
             mainWindow.center();
         }

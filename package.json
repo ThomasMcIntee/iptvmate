@@ -20,6 +20,8 @@
     "tv"
   ],
   "scripts": {
+    "setup": "npm install",
+    "setup:quiet": "npm install --no-audit --no-fund --loglevel=error",
     "postinstall": "electron-builder install-app-deps",
     "build:frontend": "nx build web",
     "build:frontend:pwa": "nx build web --configuration=pwa",
