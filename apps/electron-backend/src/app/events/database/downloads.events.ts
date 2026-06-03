@@ -5,14 +5,42 @@
 
 import { and, eq, inArray, sql } from 'drizzle-orm';
 import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron';
-import { download } from 'electron-dl';
 import { existsSync, unlinkSync } from 'fs';
 import { extname, join } from 'path';
 import { getDatabase } from '../../database/connection';
 import * as schema from '../../database/schema';
 
+type ElectronDownloadFn = (
+    window: BrowserWindow,
+    url: string,
+    options?: Record<string, unknown>
+) => Promise<unknown>;
+
+let electronDownload: ElectronDownloadFn | null = null;
+
+async function getElectronDownload(): Promise<ElectronDownloadFn> {
+    if (electronDownload) {
+        return electronDownload;
+    }
+
+    const electronDl = await import('electron-dl');
+    electronDownload = electronDl.download as ElectronDownloadFn;
+    return electronDownload;
+}
+
 type DownloadItemWithCancel = {
     cancel?: () => void;
+};
+
+type DownloadProgress = {
+    transferredBytes: number;
+    totalBytes: number;
+};
+
+type CompletedDownloadFile = {
+    path: string;
+    filename: string;
+    fileSize: number;
 };
 
 interface DownloadTask {
@@ -118,17 +146,17 @@ async function startDownload(task: DownloadTask) {
     const PROGRESS_THROTTLE_MS = 500;
 
     try {
-        const downloadOptions: NonNullable<Parameters<typeof download>[2]> & {
+        const downloadOptions: Record<string, unknown> & {
             headers?: Record<string, string>;
         } = {
             directory: task.directory,
             filename: task.fileName,
             overwrite: true,
-            onStarted: (item) => {
+            onStarted: (item: unknown) => {
                 console.log(`[Downloads] Started: ${task.fileName}`);
                 task.downloadItem = item as DownloadItemWithCancel;
             },
-            onProgress: async (progress) => {
+            onProgress: async (progress: DownloadProgress) => {
                 const now = Date.now();
                 if (now - lastProgressUpdate < PROGRESS_THROTTLE_MS) {
                     return;
@@ -146,7 +174,7 @@ async function startDownload(task: DownloadTask) {
 
                 broadcastUpdate();
             },
-            onCompleted: async (file) => {
+            onCompleted: async (file: CompletedDownloadFile) => {
                 console.log(`[Downloads] Completed: ${task.fileName}`);
                 await db
                     .update(schema.downloads)
@@ -195,6 +223,7 @@ async function startDownload(task: DownloadTask) {
             downloadOptions.headers = task.headers;
         }
 
+        const download = await getElectronDownload();
         await download(mainWindow, task.url, downloadOptions);
     } catch (error) {
         console.error(`[Downloads] Error downloading ${task.fileName}:`, error);
