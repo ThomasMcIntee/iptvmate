@@ -18,8 +18,7 @@
     "iptv",
     "video",
     "tv"
-
-  },
+  ],
   "scripts": {
     "postinstall": "electron-builder install-app-deps",
     "build:frontend": "nx build web",

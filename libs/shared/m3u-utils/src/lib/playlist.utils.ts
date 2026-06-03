@@ -5,7 +5,14 @@ import {
     ParsedPlaylistItem,
     Playlist,
 } from 'shared-interfaces';
-import { v4 as uuidv4 } from 'uuid';
+
+function generateId(): string {
+    if (typeof globalThis.crypto?.randomUUID === 'function') {
+        return globalThis.crypto.randomUUID();
+    }
+
+    return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
 
 /**
  * Aggregates favorite channels as objects from all available playlists
@@ -74,7 +81,7 @@ export const createPlaylistObject = (
     uploadType?: 'URL' | 'FILE' | 'TEXT'
 ): Playlist => {
     return {
-        _id: uuidv4(),
+        _id: generateId(),
         filename: name,
         title: name,
         count: playlist.items.length,
@@ -82,7 +89,7 @@ export const createPlaylistObject = (
             ...playlist,
             items: playlist.items.map((item: ParsedPlaylistItem) => ({
                 ...item,
-                id: uuidv4(),
+                id: generateId(),
             })),
         },
         importDate: new Date().toISOString(),
