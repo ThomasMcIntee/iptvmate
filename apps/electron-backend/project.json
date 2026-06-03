@@ -71,6 +71,12 @@
     },
     "make": {
       "dependsOn": ["electron-backend:build"],
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "node scripts/dev/run-nx-target-with-windows-shell-fix.cjs electron-backend:make-native"
+      }
+    },
+    "make-native": {
       "executor": "nx-electron:make",
       "options": {
         "name": "electron-backend",
