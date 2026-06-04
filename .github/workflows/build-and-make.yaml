@@ -47,12 +47,19 @@ jobs:
                   node-version: '24'
                   cache: 'pnpm'
 
+            - name: Clean pnpm cache and node_modules
+              run: >
+                  node -e "const fs=require('node:fs'); const cp=require('node:child_process');
+                  const storePath=cp.execSync('pnpm store path --silent',{encoding:'utf8'}).trim();
+                  fs.rmSync('node_modules',{recursive:true,force:true});
+                  fs.rmSync(storePath,{recursive:true,force:true});"
+
             - name: Install Linux system dependencies
               if: matrix.os == 'linux'
               run: sudo apt-get install --no-install-recommends -y rpm libarchive-tools
                   
             - name: Install dependencies
-              run: pnpm install --no-frozen-lockfile
+              run: pnpm install
 
             - name: Build frontend
               run: npx nx build web --skip-nx-cache
