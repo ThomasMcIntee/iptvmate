@@ -366,7 +366,7 @@ export default class App {
             const url = `http://localhost:${rendererAppPort}`;
             const tryLoad = () => {
                 mainWindow.loadURL(url).catch(() => {
-                    // Angular dev server not ready yet ΓÇô retry after 1s
+                    // Angular dev server not ready yet – retry after 1s
                     setTimeout(tryLoad, 1000);
                 });
             };
