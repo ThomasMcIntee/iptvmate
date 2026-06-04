@@ -52,7 +52,7 @@ jobs:
                    sudo apt-get install --no-install-recommends -y rpm libarchive-tools
    
             - name: Install dependencies
-              run: pnpm install --no-frozen-lockfile
+              run: pnpm install
 
             - name: Build frontend
               run: npx nx build web --skip-nx-cache
@@ -157,4 +157,3 @@ jobs:
                       artifacts/windows-artifacts/*.zip
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
