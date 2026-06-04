@@ -48,11 +48,10 @@ jobs:
                   cache: 'pnpm'
 
             - name: Clean pnpm cache and node_modules
-              run: >
-                  node -e "const fs=require('node:fs'); const cp=require('node:child_process');
-                  const storePath=cp.execSync('pnpm store path --silent',{encoding:'utf8'}).trim();
-                  fs.rmSync('node_modules',{recursive:true,force:true});
-                  fs.rmSync(storePath,{recursive:true,force:true});"
+              shell: bash
+              run: |
+                  rm -rf node_modules
+                  pnpm store prune
 
             - name: Install Linux system dependencies
               if: matrix.os == 'linux'
@@ -164,4 +163,3 @@ jobs:
                       artifacts/windows-artifacts/*.zip
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
