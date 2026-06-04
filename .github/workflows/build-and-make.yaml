@@ -49,10 +49,10 @@ jobs:
 
             - name: Install Linux system dependencies
               if: matrix.os == 'linux'
-                   sudo apt-get install --no-install-recommends -y rpm libarchive-tools
+              run: sudo apt-get install --no-install-recommends -y rpm libarchive-tools
    
             - name: Install dependencies
-              run: pnpm install --no-frozen-lockfile
+              run: pnpm install --no-frozen-lockfile --force
 
             - name: Build frontend
               run: npx nx build web --skip-nx-cache
@@ -157,4 +157,3 @@ jobs:
                       artifacts/windows-artifacts/*.zip
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
