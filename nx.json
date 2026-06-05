@@ -82,7 +82,9 @@
       "cache": true
     },
     "build:frontend": {
-      "cache": true
+       "outputs": [
+        "{projectRoot}/build" 
+      ],
     },
     "serve:frontend": {
       "cache": true

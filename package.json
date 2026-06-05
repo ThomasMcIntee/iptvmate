@@ -1,6 +1,6 @@
 {
   "name": "iptvmate",
-  "version": "0.23.2",
+  "version": "1.1.1",
   "license": "MIT",
   "description": "IPTV player application.",
   "homepage": "https://github.com/ThomasMcintee/iptvmate",
@@ -20,6 +20,8 @@
     "tv"
   ],
   "scripts": {
+    "setup": "npm install",
+    "setup:quiet": "npm install --no-audit --no-fund --loglevel=error",
     "postinstall": "electron-builder install-app-deps",
     "build:frontend": "nx build web",
     "build:frontend:pwa": "nx build web --configuration=pwa",
@@ -33,11 +35,11 @@
     "test:backend": "nx test electron-backend",
     "package:app": "nx run electron-backend:make --prepackageOnly",
     "make:app": "nx run electron-backend:make",
-    "make:app:win": "powershell -NoProfile -Command \"$env:PATH = \"\"$env:SystemRoot\\System32;$env:PATH\"\"; nx run electron-backend:make --outputStyle=static\"",
     "serve:website": "nx serve website",
     "build:website": "nx build website"
   },
   "private": true,
+  "packageManager": "pnpm@10.0.0",
   "dependencies": {
     "@angular/animations": "^21.2.12",
     "@angular/common": "~21.2.12",
@@ -114,7 +116,7 @@
     "@ngrx/eslint-plugin": "^21.1.0",
     "@ngx-translate/core": "17.0.0",
     "@ngx-translate/http-loader": "17.0.0",
-    "@nx/angular": "20.8.4",
+    "@nx/angular": "20.1.4",
     "@nx/devkit": "23.0.0-beta.8",
     "@nx/esbuild": "22.7.5",
     "@nx/eslint": "22.7.5",
@@ -146,11 +148,11 @@
     "angular-eslint": "21.3.1",
     "astro": "6.4.2",
     "conventional-changelog-cli": "5.0.0",
-    "drizzle-kit": "0.18.1",
-    "electron": "41.5.2",
+    "drizzle-kit": "0.31.10",
+    "electron": "28.3.3",
     "electron-builder": "^26.8.1",
     "electron-playwright-helpers": "2.1.0",
-    "electron-rebuild": "2.0.3",
+    "electron-rebuild": "^3.2.9",
     "esbuild": "0.28.0",
     "eslint": "^10.3.0",
     "eslint-config-prettier": "^10.1.8",
@@ -172,13 +174,10 @@
     "sharp": "0.34.5",
     "tailwindcss": "^3.4.19",
     "ts-jest": "^29.4.9",
-    "ts-loader": "^9.5.7",
     "ts-node": "10.9.2",
     "tslib": "^2.8.1",
     "typescript": "6.0.3",
-    "typescript-eslint": "^8.59.2",
-    "webpack": "^5.107.2",
-    "webpack-cli": "^7.0.3"
+    "typescript-eslint": "^8.59.2"
   },
   "nx": {}
 }

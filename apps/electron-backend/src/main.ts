@@ -1,5 +1,4 @@
 import { app, BrowserWindow, ipcMain, shell } from 'electron';
-import fixPath from 'fix-path';
 import { join } from 'path';
 import App from './app/app';
 import { initDatabase } from './app/database/connection';
@@ -163,7 +162,22 @@ export default class Main {
     }
 }
 
-fixPath();
+function applyFixPath(): void {
+    // fix-path is only needed on POSIX shells and ships as ESM.
+    if (process.platform === 'win32') {
+        return;
+    }
+
+    void import('fix-path')
+        .then(({ default: fixPath }) => {
+            fixPath();
+        })
+        .catch((error: unknown) => {
+            console.warn('Failed to apply PATH fix:', error);
+        });
+}
+
+applyFixPath();
 
 // handle setup events as quickly as possible
 Main.initialize();
