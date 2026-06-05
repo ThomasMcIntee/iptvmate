@@ -7,10 +7,9 @@
 ![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/thomasmcintee/iptvmate/build-and-test.yaml?style=for-the-badge&logo=github)
 [![Releases](https://img.shields.io/github/downloads/thomasmcintee/iptvmate/total?style=for-the-badge&logo=github)](https://github.com/thomasmcintee/iptvmate/releases)
 [![Codecov](https://img.shields.io/codecov/c/github/thomasmcintee/iptvmate?style=for-the-badge)](https://codecov.io/gh/thomasmcintee/iptvmate)
-[![Telegram](https://img.shields.io/badge/telegram-iptvmate-blue?logo=telegram&style=for-the-badge)](https://t.me/iptvmate)
-[![Bluesky](https://img.shields.io/badge/bluesky-iptvmate-darkblue?logo=bluesky&style=for-the-badge)](https://bsky.app/profile/iptvmate.bsky.social)
 
-🌐 **[Website](https://thomasmcintee.github.io/iptvmate/)** | [Telegram channel for discussions](https://t.me/iptvmate) | [Buy me a coffee](https://ko-fi.com/thomasmcintee) | [GitHub Sponsors](https://github.com/sponsors/thomasmcintee)
+
+🌐 **[Website](https://thomasmcintee.github.io/iptvmate/)** | [Buy me a coffee](https://ko-fi.com/thomasmcintee) | [GitHub Sponsors](https://github.com/sponsors/thomasmcintee)
 
 **iptvmate** is a video player application that provides support for IPTV playlist playback (m3u, m3u8). The application allows users to import playlists using remote URLs or by uploading files from the local file system. Additionally, it supports EPG information in XMLTV format which can be provided via URL.
 
